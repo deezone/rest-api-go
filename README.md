@@ -15,3 +15,4 @@ $ go run main.go
 #### References
 - [Building a RESTful API with Golang](https://www.codementor.io/codehakase/building-a-restful-api-with-golang-a6yivzqdo)
 - [Your First Program](https://www.golang-book.com/books/intro/2)
+- [Dep](https://github.com/golang/dep): dependency management tool for Go
