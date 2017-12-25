@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"time"
+	"strconv"
 )
 
 // The quote Type (more like an object)
@@ -34,7 +35,21 @@ func GetQuotes(w http.ResponseWriter, r *http.Request) {
 // GetQuote looks up a specific quote by ID.
 func GetQuote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	io.WriteString(w, `{"status":"ok"}`)
+
+	params := mux.Vars(r)
+	targetId, err := strconv.Atoi(params["id"])
+	if (err != nil) {
+		io.WriteString(w, `{"status": "error, invalid ID"}`)
+		return
+	}
+
+	for _, item := range quotes {
+		if item.ID == targetId {
+			json.NewEncoder(w).Encode(item)
+			return
+		}
+	}
+	json.NewEncoder(w).Encode(&Quote{})
 }
 
 // CreateQuote creates a new quote.
