@@ -21,3 +21,7 @@ $ go run main.go
 - [Your First Program](https://www.golang-book.com/books/intro/2)
 - [Dep](https://github.com/golang/dep): dependency management tool for Go
 - [Godoc: documenting Go code](https://blog.golang.org/godoc-documenting-go-code)
+
+##### Packages
+- [time](https://golang.org/pkg/time/)
+- [encoding/json](https://golang.org/pkg/encoding/json/)
