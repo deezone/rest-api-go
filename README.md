@@ -12,6 +12,24 @@ $ go run main.go
 - POST `/quote/{id}` -> Create a new quote
 - DELETE `/quote/{id}` -> Delete a quote
 
+**POST Example**
+- raw `JSON(application/json)`
+```
+{
+    "id": 6,
+    "quote": "Test quote.",
+    "authour": {
+        "id": 6,
+        "first": "First",
+        "last": "Last",
+        "born": "2000-01-02T00:00:00Z",
+        "died": "2010-01-03T00:00:00Z",
+        "description": "Test description.",
+        "biolink": "http://somesite.com"
+    }
+}
+```
+
 #### References
 ##### API Application in Go
 - [Building a RESTful API with Golang](https://www.codementor.io/codehakase/building-a-restful-api-with-golang-a6yivzqdo)
@@ -51,5 +69,5 @@ Add configuration files to:
 }
 ```
 
-A combination of environment variable and configuration file settings will be used by the application to determine 
+A combination of the environment variable and configuration file settings will be used by the application to determine
 run time settings.
