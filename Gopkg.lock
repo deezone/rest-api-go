@@ -13,9 +13,15 @@
   revision = "7f08801859139f86dfafd1c296e2cba9a80d292e"
   version = "v1.6.0"
 
+[[projects]]
+  branch = "master"
+  name = "github.com/tkanos/gonfig"
+  packages = ["."]
+  revision = "e81af00e4884f894ad1c165aa591c4ba127ecebf"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "22efb1c7d9d2403520db6d9a878b2f1e52741e51425cbda743cfd25f00c84a9b"
+  inputs-digest = "584cf79c2836d5a5abc760c7b784826825a98dddd29c38980c09e6e5acf5b83c"
   solver-name = "gps-cdcl"
   solver-version = 1
