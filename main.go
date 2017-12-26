@@ -8,7 +8,16 @@ import (
 	"io"
 	"time"
 	"strconv"
+	"github.com/tkanos/gonfig"
+	"strings"
+	"os"
 )
+
+// Configuration settings common to application
+type Configuration struct {
+	Port        int
+	Environment string
+}
 
 // The quote Type (more like an object)
 type Quote struct {
@@ -16,6 +25,8 @@ type Quote struct {
 	Quote   string   `json:"quote"`
 	Authour *Authour `json:"authour,omitempty"`
 }
+
+// Authour type, referenced by core items: quotes, publications, etc
 type Authour struct {
 	First       string    `json:"first,omitempty"`
 	Last        string    `json:"last,omitempty"`
@@ -66,6 +77,13 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 
 // main function
 func main() {
+	configuration := Configuration{}
+	configuration.Environment = os.Getenv("REST_API_ENV")
+	env := []string{}
+	env = append(env, "config/config.", configuration.Environment, ".json")
+	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
+	if (err != nil) { return }
+
 	LoadData()
 
 	router := mux.NewRouter()
@@ -75,7 +93,9 @@ func main() {
 	router.HandleFunc("/quote/{id}", CreateQuote).Methods("POST")
 	router.HandleFunc("/quote/{id}", DeleteQuote).Methods("DELETE")
 
-	log.Fatal(http.ListenAndServe(":8001", router))
+	port := []string{}
+	port = append(port, ":", strconv.Itoa(configuration.Port))
+	log.Fatal(http.ListenAndServe(strings.Join(port, ""), router))
 }
 
 // LoadData populates the quotes array with initial data store values to mimic a database

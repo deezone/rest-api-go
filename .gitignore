@@ -18,3 +18,6 @@
 
 # Dependancy vendor files
 vendor
+
+# Configuration settings
+config
