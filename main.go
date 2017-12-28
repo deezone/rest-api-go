@@ -14,15 +14,16 @@ import (
 	"github.com/tkanos/gonfig"
 	"strings"
 	"os"
+	"fmt"
 )
 
-// Configuration type settings common to application
+// Configuration type, settings common to application
 type Configuration struct {
 	Port        int
 	Environment string
 }
 
-// The Quote type (more like an object) that manages the details of a quote.
+// Quote type (more like an object), manages the details of a quote.
 type Quote struct {
 	ID      int      `json:"id"`
 	Quote   string   `json:"quote"`
@@ -46,6 +47,8 @@ var quotes []Quote
 // GET /quotes
 // Returns all of the quotes in the JSON format.
 func GetQuotes(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Request to GET /quotes\n")
+
 	json.NewEncoder(w).Encode(quotes)
 }
 
@@ -56,18 +59,20 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
-	targetID, err := strconv.Atoi(params["id"])
+	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
 		io.WriteString(w, `{"status": "error, invalid ID"}`)
 		return
 	}
+	fmt.Fprintf(w, "Request to GET /quote/{quoteID}: quoteID = %s\n", quoteID)
 
 	for _, item := range quotes {
-		if item.ID == targetID {
+		if item.ID == quoteID {
 			json.NewEncoder(w).Encode(item)
 			return
 		}
 	}
+
 	json.NewEncoder(w).Encode(&Quote{})
 }
 
@@ -78,16 +83,18 @@ func CreateQuote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
-	targetID, err := strconv.Atoi(params["id"])
+	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
 		io.WriteString(w, `{"status": "error, invalid ID"}`)
 		return
 	}
+	fmt.Fprintf(w, "Request to POST /quote/{quoteID}: quoteID = %s\n", quoteID)
 
 	var quote Quote
 	_ = json.NewDecoder(r.Body).Decode(&quote)
-	quote.ID = targetID
+	quote.ID = quoteID
 	quotes = append(quotes, quote)
+
 	json.NewEncoder(w).Encode(quotes)
 }
 
@@ -98,29 +105,30 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
-	targetID, err := strconv.Atoi(params["id"])
+	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
 		io.WriteString(w, `{"status": "error, invalid ID"}`)
 		return
 	}
+	fmt.Fprintf(w, "Request to DELETE /quote/{quoteID}: quoteID = %s\n", quoteID)
 
 	for index, item := range quotes {
-		if item.ID == targetID {
+		if item.ID == quoteID {
 			quotes = append(quotes[:index], quotes[:index+1]...)
 			break
 		}
 	}
+
 	json.NewEncoder(w).Encode(quotes)
 }
 
 // main function
 func main() {
-	configuration := Configuration{}
-	configuration.Environment = os.Getenv("REST_API_ENV")
-	env := []string{}
-	env = append(env, "config/config.", configuration.Environment, ".json")
-	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
-	if (err != nil) { return }
+	port := LoadConfig()
+	if (port == "") {
+		fmt.Println("Application port setting not found")
+		return
+	}
 
 	quotes = LoadData()
 
@@ -131,9 +139,30 @@ func main() {
 	router.HandleFunc("/quote/{id}", CreateQuote).Methods("POST")
 	router.HandleFunc("/quote/{id}", DeleteQuote).Methods("DELETE")
 
+	log.Fatal(http.ListenAndServe(port, router))
+}
+
+// LoadConf manages gathering the application run time settings
+// Uses envionment variable and configuration files.
+// Returns string of configured port
+func LoadConfig() string {
+	configuration := Configuration{}
+	configuration.Environment = os.Getenv("REST_API_ENV")
+	if (configuration.Environment == "") {
+		fmt.Println("REST_API_ENV not defined, using default development environment settings.")
+		configuration.Environment = "development"
+	}
+	env := []string{}
+	env = append(env, "config/config.", configuration.Environment, ".json")
+	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
+	if (err != nil) {
+		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
+		return ""
+	}
+
 	port := []string{}
 	port = append(port, ":", strconv.Itoa(configuration.Port))
-	log.Fatal(http.ListenAndServe(strings.Join(port, ""), router))
+	return strings.Join(port, "")
 }
 
 // LoadData manages the gathering of quote data.
@@ -171,7 +200,7 @@ func LoadData() []Quote {
 			Last: "Lee",
 			Born: time.Date(1940, time.November, 27, 0, 0, 0, 0, time.UTC),
 			Died: time.Date(1973, time.July, 20, 0, 0, 0, 0, time.UTC),
-			Description: "A Hong Kong and American actor, film director, martial artist, martial arts instructor, philosopher[5] and founder of the martial art Jeet Kune Do.",
+			Description: "A Hong Kong and American actor, film director, martial artist, martial arts instructor, philosopher and founder of the martial art Jeet Kune Do.",
 			BioLink:"https://en.wikipedia.org/wiki/Bruce_Lee"}})
 	data = append(data, Quote{
 		ID: 4,

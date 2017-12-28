@@ -9,6 +9,9 @@ when building an API.
 $ go run main.go
 ```
 
+#### Hosted Version
+- [rest-api-go on herokuapp](https://rest-api-go.herokuapp.com/)
+
 #### Endpoints
 - GET `/quotes` -> All quotes in the quotes document (database)
 - GET `/quote/{id}` -> Get a single quote
@@ -83,3 +86,11 @@ run time settings.
 - [strconv](https://golang.org/pkg/strconv/)
 - [strings](https://golang.org/pkg/strings/)
 - [os](https://golang.org/pkg/os/)
+- [fmt](https://golang.org/pkg/fmt/)
+- [github.com/gorilla/mux](https://github.com/gorilla/mux)
+  - [Gorilla Toolkit - Mux](http://www.gorillatoolkit.org/pkg/mux)
+  - [Routing (using gorilla/mux)](https://gowebexamples.com/routes-using-gorilla-mux/)
+
+##### Go Application Hosting
+- https://rest-api-go.herokuapp.com/
+- [Getting Started on Heroku with Go](https://devcenter.heroku.com/articles/getting-started-with-go#introduction)
