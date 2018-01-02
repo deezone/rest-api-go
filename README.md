@@ -71,6 +71,8 @@ run time settings.
 ##### API Application in Go
 - [Building a RESTful API with Golang](https://www.codementor.io/codehakase/building-a-restful-api-with-golang-a6yivzqdo)
 - [API foundations in Go](https://leanpub.com/api-foundations)
+- [Get Programming with Go](https://www.manning.com/books/get-programming-with-go)
+- [Building and Testing a REST API in Go with Gorilla Mux and PostgreSQL](https://semaphoreci.com/community/tutorials/building-and-testing-a-rest-api-in-go-with-gorilla-mux-and-postgresql)
 
 ##### Go Development
 - [Your First Program](https://www.golang-book.com/books/intro/2)
@@ -87,10 +89,21 @@ run time settings.
 - [strings](https://golang.org/pkg/strings/)
 - [os](https://golang.org/pkg/os/)
 - [fmt](https://golang.org/pkg/fmt/)
+
 - [github.com/gorilla/mux](https://github.com/gorilla/mux)
   - [Gorilla Toolkit - Mux](http://www.gorillatoolkit.org/pkg/mux)
   - [Routing (using gorilla/mux)](https://gowebexamples.com/routes-using-gorilla-mux/)
+- [github.com/gorilla/handlers](https://github.com/gorilla/handlers)
+- [github.com/tkanos/gonfig](https://github.com/tkanos/gonfig)
 
 ##### Go Application Hosting
 - https://rest-api-go.herokuapp.com/
 - [Getting Started on Heroku with Go](https://devcenter.heroku.com/articles/getting-started-with-go#introduction)
+
+##### Angular
+- [Build A Full Stack Movie Database With Golang, Angular, And NoSQL](https://www.thepolyglotdeveloper.com/2017/02/build-a-full-stack-movie-database-with-golang-angular-and-nosql/)
+- [Golang and Angular 2, Why not?](https://medium.com/@thanhngvpt/golang-and-angular-2-why-not-38a398b182c)
+- [Create A Real Time Chat App With Golang, Angular 2, And Websockets](https://www.thepolyglotdeveloper.com/2016/12/create-real-time-chat-app-golang-angular-2-websockets/)
+
+##### Other
+- [gobot.io](https://gobot.io/)
