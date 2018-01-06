@@ -21,18 +21,22 @@ import (
 // Configuration type, settings common to application
 type Configuration struct {
 	Port        int
+	Version     string
+	ReleaseDate string
 	Environment string
 }
 
 // Quote type (more like an object), manages the details of a quote.
 type Quote struct {
-	ID      int      `json:"id"`
-	Quote   string   `json:"quote"`
-	Authour *Authour `json:"authour,omitempty"`
+	ID     int     `json:"id"`
+	Quote  string  `json:"quote"`
+	Author *Author `json:"authour,omitempty"`
 }
 
+var quotes []Quote
+
 // Authour type, referenced by core items: quotes, publications, etc.
-type Authour struct {
+type Author struct {
 	ID          int       `json:"id"`
 	First       string    `json:"first,omitempty"`
 	Last        string    `json:"last,omitempty"`
@@ -42,7 +46,18 @@ type Authour struct {
 	BioLink     string    `json:"biolink,omitempty"`
 }
 
-var quotes []Quote
+type Health struct {
+	Health string `json:"health,omitempty"`
+}
+
+type Ready struct {
+	Ready string `json:"ready,omitempty"`
+}
+
+type Version struct {
+	Version string     `json:"version,omitempty"`
+	ReleaseDate string `json:"release-date,omitempty"`
+}
 
 // GetQuotes looks up all of the quotes.
 // GET /quotes
@@ -116,6 +131,43 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, quotes)
 }
 
+// GetHealth looks up the health of the application.
+// GET /health
+// Returns all of the health status of all the components of the application.
+func GetHealth(w http.ResponseWriter, r *http.Request) {
+	var data Health
+	data.Health = "OK"
+	respondWithJSON(w, http.StatusOK, data)
+}
+
+// GetReady determines if the application is ready to process requests.
+// GET /ready
+// Returns the application state to determine if the application is ready to process requests.
+func GetReady(w http.ResponseWriter, r *http.Request) {
+	var data Ready
+	data.Ready = "OK"
+	respondWithJSON(w, http.StatusOK, data)
+}
+
+// GetVersion looks up the current version of the application.
+// GET /version
+// Returns the current version of the application.
+func GetVersion(w http.ResponseWriter, r *http.Request) {
+	var data Version
+	configuration := Configuration{}
+
+	env := []string{}
+	env = append(env, "config/config.", configuration.Environment, ".json")
+	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Application Version details unknown!")
+	}
+
+	data.Version = configuration.Version
+	data.ReleaseDate = configuration.ReleaseDate
+	respondWithJSON(w, http.StatusOK, data)
+}
+
 // main function
 func main() {
 	port := LoadConfig()
@@ -148,6 +200,21 @@ func main() {
 	// DELETE /quote
 	subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
 	subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
+
+	// GET /health
+	subRouterHealth := router.PathPrefix("/health").Subrouter()
+	subRouterHealth.HandleFunc("", GetHealth).Methods("GET")
+	subRouterHealth.HandleFunc("/", GetHealth).Methods("GET")
+
+	// GET /ready
+	subRouterReady := router.PathPrefix("/ready").Subrouter()
+	subRouterReady.HandleFunc("", GetReady).Methods("GET")
+	subRouterReady.HandleFunc("/", GetReady).Methods("GET")
+
+	// GET /version
+	subRouterVersion := router.PathPrefix("/version").Subrouter()
+	subRouterVersion.HandleFunc("", GetVersion).Methods("GET")
+	subRouterVersion.HandleFunc("/", GetVersion).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(port,
 		handlers.LoggingHandler(os.Stdout, handlers.CORS(
@@ -187,7 +254,7 @@ func LoadData() []Quote {
 	data = append(data, Quote{
 		ID: 1,
 		Quote: "When it's pouring rain and you're bowling along through the wet, there's satisfaction in knowing you're out there and the others aren't.",
-		Authour: &Authour{
+		Author: &Author{
 			ID: 1,
 			First: "Peter",
 			Last: "Snell",
@@ -197,7 +264,7 @@ func LoadData() []Quote {
 	data = append(data, Quote{
 		ID: 2,
 		Quote: "I run because it's my passion, and not just a sport. Every time I walk out the door, I know why I'm going where I'm going and I'm already focused on that special place where I find my peace and solitude. Running, to me, is more than just a physical exercise... it's a consistent reward for victory!",
-		Authour: &Authour{
+		Author: &Author{
 			ID: 2,
 			First: "Sasha",
 			Last: "Azevedo",
@@ -207,7 +274,7 @@ func LoadData() []Quote {
 	data = append(data, Quote{
 		ID: 3,
 		Quote: "If you always put limits on what you can do, physical or anything else, it'll spread over into the rest of your life. It'll spread into your work, into your morality, into your entire being. There are no limits. There are plateaus, but you must not stay there, you must go beyond them.",
-		Authour: &Authour{
+		Author: &Author{
 			ID: 3,
 			First: "Bruce",
 			Last: "Lee",
@@ -218,7 +285,7 @@ func LoadData() []Quote {
 	data = append(data, Quote{
 		ID: 4,
 		Quote: "Motivation is what gets you started. Habit is what keeps you going.",
-		Authour: &Authour{
+		Author: &Author{
 			ID: 4,
 			First: "Jim",
 			Last: "Ruyn",
@@ -228,7 +295,7 @@ func LoadData() []Quote {
 	data = append(data, Quote{
 		ID: 5,
 		Quote: "I don't think about the miles that are coming down the road, I don't think about the mile I'm on right now, I don't think about the miles I've already covered. I think about what I'm doing right now, just being lost in the moment.",
-		Authour: &Authour{
+		Author: &Author{
 			ID: 5,
 			First: "Ryan",
 			Last: "Hall",
