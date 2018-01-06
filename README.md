@@ -73,6 +73,7 @@ run time settings.
 - [API foundations in Go](https://leanpub.com/api-foundations)
 - [Get Programming with Go](https://www.manning.com/books/get-programming-with-go)
 - [Building and Testing a REST API in Go with Gorilla Mux and PostgreSQL](https://semaphoreci.com/community/tutorials/building-and-testing-a-rest-api-in-go-with-gorilla-mux-and-postgresql)
+- [How I Built an API with Mux, Go, PostgreSQL, and GORM](https://dev.to/aspittel/how-i-built-an-api-with-mux-go-postgresql-and-gorm-5ah8)
 
 ##### Go Development
 - [Your First Program](https://www.golang-book.com/books/intro/2)

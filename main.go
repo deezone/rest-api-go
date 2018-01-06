@@ -6,15 +6,16 @@ package main
 import (
 	"log"
 	"net/http"
-	"github.com/gorilla/mux"
 	"encoding/json"
-	"io"
 	"time"
 	"strconv"
-	"github.com/tkanos/gonfig"
 	"strings"
 	"os"
 	"fmt"
+
+	"github.com/tkanos/gonfig"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 // Configuration type, settings common to application
@@ -47,70 +48,62 @@ var quotes []Quote
 // GET /quotes
 // Returns all of the quotes in the JSON format.
 func GetQuotes(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Request to GET /quotes\n")
-
-	json.NewEncoder(w).Encode(quotes)
+	respondWithJSON(w, http.StatusOK, quotes)
 }
 
 // GetQuote looks up a specific quote by ID.
 // GET /quote/{id}
 // Returns a quote in the JSON format provided the target ID is valid.
 func GetQuote(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	params := mux.Vars(r)
 	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
-		io.WriteString(w, `{"status": "error, invalid ID"}`)
+		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
 		return
 	}
-	fmt.Fprintf(w, "Request to GET /quote/{quoteID}: quoteID = %s\n", quoteID)
 
 	for _, item := range quotes {
 		if item.ID == quoteID {
-			json.NewEncoder(w).Encode(item)
+			respondWithJSON(w, http.StatusOK, item)
 			return
 		}
 	}
 
-	json.NewEncoder(w).Encode(&Quote{})
+	// quoteID not found
+	respondWithError(w, http.StatusNotFound, "Quote not found.")
+	return
 }
 
 // CreateQuote creates a new quote.
 // POST /quote/{id}
 // Returns all quotes including the newly added quote made by the POST request.
 func CreateQuote(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	params := mux.Vars(r)
 	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
-		io.WriteString(w, `{"status": "error, invalid ID"}`)
+		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
 		return
 	}
-	fmt.Fprintf(w, "Request to POST /quote/{quoteID}: quoteID = %s\n", quoteID)
 
 	var quote Quote
 	_ = json.NewDecoder(r.Body).Decode(&quote)
 	quote.ID = quoteID
 	quotes = append(quotes, quote)
 
-	json.NewEncoder(w).Encode(quotes)
+	respondWithJSON(w, http.StatusCreated, quotes)
+	return
 }
 
 // DeleteQuote deletes a quote by quote ID.
 // DELETE /quote/{id}
 // Returns all quotes which will exclude the deleted quote made by the DELETE request.
 func DeleteQuote(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	params := mux.Vars(r)
 	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
-		io.WriteString(w, `{"status": "error, invalid ID"}`)
+		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
 		return
 	}
-	fmt.Fprintf(w, "Request to DELETE /quote/{quoteID}: quoteID = %s\n", quoteID)
 
 	for index, item := range quotes {
 		if item.ID == quoteID {
@@ -118,8 +111,9 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	// Add support for reporting quote not found
 
-	json.NewEncoder(w).Encode(quotes)
+	respondWithJSON(w, http.StatusOK, quotes)
 }
 
 // main function
@@ -129,17 +123,36 @@ func main() {
 		fmt.Println("Application port setting not found")
 		return
 	}
+	fmt.Printf("Starting server on port %s\n", port)
 
 	quotes = LoadData()
 
+    // Consider use of .StrictSlash(true)
 	router := mux.NewRouter()
 
-	router.HandleFunc("/quotes", GetQuotes).Methods("GET")
-	router.HandleFunc("/quote/{id}", GetQuote).Methods("GET")
-	router.HandleFunc("/quote/{id}", CreateQuote).Methods("POST")
-	router.HandleFunc("/quote/{id}", DeleteQuote).Methods("DELETE")
+	// GET /quotes
+	subRouterQuotes := router.PathPrefix("/quotes").Subrouter()
+	subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
+	subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(port, router))
+	// GET /quote
+	subRouterQuote := router.PathPrefix("/quote").Subrouter()
+	subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
+	subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
+
+	// POST /quote
+	subRouterQuote.HandleFunc("/",      CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("/{id}",  CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("/{id}/", CreateQuote).Methods("POST")
+
+	// DELETE /quote
+	subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
+	subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
+
+	log.Fatal(http.ListenAndServe(port,
+		handlers.LoggingHandler(os.Stdout, handlers.CORS(
+			handlers.AllowedMethods([]string{"GET", "POST", "DELETE"}),
+			handlers.AllowedOrigins([]string{"*"}))(router))))
 }
 
 // LoadConf manages gathering the application run time settings
@@ -224,4 +237,16 @@ func LoadData() []Quote {
 			BioLink:"https://en.wikipedia.org/wiki/Ryan_Hall_(runner)"}})
 
 	return data
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	respondWithJSON(w, code, map[string]string{"error": message})
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	response, _ := json.Marshal(payload)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
 }
