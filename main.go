@@ -17,6 +17,7 @@ import (
 	"github.com/tkanos/gonfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+    "github.com/garyburd/redigo/redis"
 )
 
 // Configuration type, settings common to application
@@ -53,6 +54,8 @@ type Health struct {
 	TotalAlloc uint64 `json:"total-alloc,omitempty"`
 	Sys        uint64 `json:"sys,omitempty"`
 	NumGC      uint32 `json:"numgc,omitempty"`
+	RedisPing  string `json:"redis-ping,omitempty"`
+	RedisPong  string `json:"redis-pong,omitempty"`
 }
 
 type Ready struct {
@@ -63,6 +66,13 @@ type Version struct {
 	Version string     `json:"version,omitempty"`
 	ReleaseDate string `json:"release-date,omitempty"`
 }
+
+// REDIS
+var(
+	connectTimeout = redis.DialConnectTimeout(time.Second)
+	readTimeout = redis.DialReadTimeout(time.Second)
+	writeTimeout = redis.DialWriteTimeout(time.Second)
+)
 
 // GetQuotes looks up all of the quotes.
 // GET /quotes
@@ -150,6 +160,22 @@ func GetHealth(w http.ResponseWriter, r *http.Request) {
 	data.TotalAlloc = m.TotalAlloc / 1024
 	data.Sys = m.Sys / 1024
 	data.NumGC = m.NumGC
+
+	redis, err := GetRedis()
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Fatal error connecting to Ridis")
+		log.Fatal("Fatal error: ", err)
+		return
+	}
+
+	data.RedisPing = fmt.Sprintf("[%.4f] Starting\n", time.Now())
+	pong, err := redis.Do("PING")
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Error PINGing Ridis")
+		log.Fatal("Redis error: ", err)
+		return
+	}
+	data.RedisPong = fmt.Sprintf("[%.4f] Response %s, err %#v\n", time.Now(), pong, err)
 
 	respondWithJSON(w, http.StatusOK, data)
 }
@@ -330,4 +356,8 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+func GetRedis() (redis.Conn, error) {
+	return redis.Dial("tcp", "redis:6379", connectTimeout, readTimeout, writeTimeout)
 }
