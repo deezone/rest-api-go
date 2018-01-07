@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/garyburd/redigo"
+  packages = ["internal","redis"]
+  revision = "d1ed5c67e5794de818ea85e6b522fda02623a484"
+  version = "v1.4.0"
+
+[[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
   revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
@@ -28,6 +34,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fea4d3feab480af2ef384168986fd6aa843a2920a449c140e400f688a8daa445"
+  inputs-digest = "0f5271dcfb519defeacec38a35697d8d7b8285bbd9806fa9dbcda4ce2ef793e3"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -98,6 +98,21 @@ run time settings.
 - [github.com/gorilla/handlers](https://github.com/gorilla/handlers)
 - [github.com/tkanos/gonfig](https://github.com/tkanos/gonfig)
 
+##### Docker
+- Network for communication between containers:
+```
+$ docker network create -d bridge --subnet 172.25.0.0/24 party
+```
+- Runner for Go application, saved to `/usr/local/bin/dgo` with access to "party" network
+```
+$ docker run --net=party -p 8080:80 --rm=true -it -v `pwd`:/go/src/app -w /go/sr\
+c/app golang go "$@"
+```
+- Redis with access to "party" network
+```
+$ docker run --restart=always -h redis --name redis --net=party -d redis
+```
+
 ##### Instrumentation / Performance
 - [10 Packages to Instrument Your Go Application](https://pocketgophers.com/10-to-instrument/)
 - [Easy-metrics](https://github.com/admobi/easy-metrics): Ready to use, standalone Go metrics with interval snapshots
