@@ -17,6 +17,10 @@ import (
 	"github.com/tkanos/gonfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
+
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 // Configuration type, settings common to application
@@ -25,19 +29,30 @@ type Configuration struct {
 	Version     string
 	ReleaseDate string
 	Environment string
+	DbHost      string
+	DbUser      string
+	DbName      string
+	DbPassword  string
 }
 
 // Quote type (more like an object), manages the details of a quote.
 type Quote struct {
+	gorm.Model
+
 	ID     int     `json:"id"`
 	Quote  string  `json:"quote"`
-	Author *Author `json:"authour,omitempty"`
+	Author *Author `json:"author,omitempty"`
 }
 
 var quotes []Quote
+var db *gorm.DB
+var err error
+var conf Configuration
 
 // Authour type, referenced by core items: quotes, publications, etc.
 type Author struct {
+	gorm.Model
+
 	ID          int       `json:"id"`
 	First       string    `json:"first,omitempty"`
 	Last        string    `json:"last,omitempty"`
@@ -62,6 +77,24 @@ type Ready struct {
 type Version struct {
 	Version string     `json:"version,omitempty"`
 	ReleaseDate string `json:"release-date,omitempty"`
+}
+
+// init manages initalization logic
+// Uses envionment variable and configuration files.
+// Gathers application run time settings
+func init() {
+
+	conf.Environment = os.Getenv("REST_API_ENV")
+	if (conf.Environment == "") {
+		fmt.Println("REST_API_ENV not defined, using default development environment settings.")
+		conf.Environment = "development"
+	}
+	env := []string{}
+	env = append(env, "config/config.", conf.Environment, ".json")
+	err := gonfig.GetConf(strings.Join(env, ""), &conf)
+	if (err != nil) {
+		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
+	}
 }
 
 // GetQuotes looks up all of the quotes.
@@ -184,14 +217,23 @@ func GetVersion(w http.ResponseWriter, r *http.Request) {
 
 // main function
 func main() {
-	port := LoadConfig()
-	if (port == "") {
-		fmt.Println("Application port setting not found")
-		return
-	}
-	fmt.Printf("Starting server on port %s\n", port)
 
-	quotes = LoadData()
+	fmt.Println("Starting DB connection...")
+	db, err = gorm.Open(
+		"postgres",
+		"host=" + conf.DbHost + " " +
+		"user=" + conf.DbUser + " " +
+		"dbname=" + conf.DbName + " " +
+		"sslmode=disable " +
+		"password=" + conf.DbPassword)
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	defer db.Close()
+
+	db.AutoMigrate(&Quote{})
+	db.AutoMigrate(&Author{})
 
     // Consider use of .StrictSlash(true)
 	router := mux.NewRouter()
@@ -230,33 +272,18 @@ func main() {
 	subRouterVersion.HandleFunc("", GetVersion).Methods("GET")
 	subRouterVersion.HandleFunc("/", GetVersion).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(port,
+	if (conf.Port == 0) {
+		fmt.Println("Application port setting not found")
+		os.Exit(1)
+	}
+	port := []string{}
+	port = append(port, ":", strconv.Itoa(conf.Port))
+
+	fmt.Printf("Starting server on port %s\n", strings.Join(port, ""))
+	log.Fatal(http.ListenAndServe(strings.Join(port, ""),
 		handlers.LoggingHandler(os.Stdout, handlers.CORS(
 			handlers.AllowedMethods([]string{"GET", "POST", "DELETE"}),
 			handlers.AllowedOrigins([]string{"*"}))(router))))
-}
-
-// LoadConf manages gathering the application run time settings
-// Uses envionment variable and configuration files.
-// Returns string of configured port
-func LoadConfig() string {
-	configuration := Configuration{}
-	configuration.Environment = os.Getenv("REST_API_ENV")
-	if (configuration.Environment == "") {
-		fmt.Println("REST_API_ENV not defined, using default development environment settings.")
-		configuration.Environment = "development"
-	}
-	env := []string{}
-	env = append(env, "config/config.", configuration.Environment, ".json")
-	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
-	if (err != nil) {
-		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
-		return ""
-	}
-
-	port := []string{}
-	port = append(port, ":", strconv.Itoa(configuration.Port))
-	return strings.Join(port, "")
 }
 
 // LoadData manages the gathering of quote data.

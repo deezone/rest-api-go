@@ -20,6 +20,24 @@
   version = "v1.6.0"
 
 [[projects]]
+  name = "github.com/jinzhu/gorm"
+  packages = [".","dialects/postgres"]
+  revision = "5174cc5c242a728b435ea2be8a2f7f998e15429b"
+  version = "v1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/jinzhu/inflection"
+  packages = ["."]
+  revision = "1c35d901db3da928c72a72d8458480cc9ade058f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lib/pq"
+  packages = [".","hstore","oid"]
+  revision = "83612a56d3dd153a94a629cd64925371c9adad78"
+
+[[projects]]
   branch = "master"
   name = "github.com/tkanos/gonfig"
   packages = ["."]
@@ -28,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fea4d3feab480af2ef384168986fd6aa843a2920a449c140e400f688a8daa445"
+  inputs-digest = "234a0785360d903262f94200f3731ebd660c916f2f9e03f230758bc302dfef36"
   solver-name = "gps-cdcl"
   solver-version = 1
