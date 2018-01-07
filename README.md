@@ -90,12 +90,24 @@ run time settings.
 - [strings](https://golang.org/pkg/strings/)
 - [os](https://golang.org/pkg/os/)
 - [fmt](https://golang.org/pkg/fmt/)
+- [runtime](https://golang.org/pkg/runtime/)
 
 - [github.com/gorilla/mux](https://github.com/gorilla/mux)
   - [Gorilla Toolkit - Mux](http://www.gorillatoolkit.org/pkg/mux)
   - [Routing (using gorilla/mux)](https://gowebexamples.com/routes-using-gorilla-mux/)
 - [github.com/gorilla/handlers](https://github.com/gorilla/handlers)
 - [github.com/tkanos/gonfig](https://github.com/tkanos/gonfig)
+
+##### Instrumentation / Performance
+- [10 Packages to Instrument Your Go Application](https://pocketgophers.com/10-to-instrument/)
+- [Easy-metrics](https://github.com/admobi/easy-metrics): Ready to use, standalone Go metrics with interval snapshots
+- [ocraft/health](https://github.com/gocraft/health)
+> gocraft/health allows you to instrument your service for logging and metrics, and then send that instrumentation to log files, StatsD, Bugsnag, or to be polled and aggregated via a JSON API.
+
+> gocraft/health also ships with a New Relic-like aggregator (called healthd) that shows you your slowest endpoints, top error producers, top throughput endpoints, and so on.
+
+- [Log memory usage every n seconds in Go #golang](https://gist.github.com/thomas11/2909362)
+- [Read Golang MemsStats the Hard Way](https://blog.xiaoba.me/2017/09/02/how-to-play-golang-with-gdb-and-python.html)
 
 ##### Go Application Hosting
 - https://rest-api-go.herokuapp.com/

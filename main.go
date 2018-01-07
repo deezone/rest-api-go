@@ -12,6 +12,7 @@ import (
 	"strings"
 	"os"
 	"fmt"
+	"runtime"
 
 	"github.com/tkanos/gonfig"
 	"github.com/gorilla/handlers"
@@ -47,7 +48,11 @@ type Author struct {
 }
 
 type Health struct {
-	Health string `json:"health,omitempty"`
+	Refer      string `json:"reference,omitempty"`
+	Alloc      uint64 `json:"alloc,omitempty"`
+	TotalAlloc uint64 `json:"total-alloc,omitempty"`
+	Sys        uint64 `json:"sys,omitempty"`
+	NumGC      uint32 `json:"numgc,omitempty"`
 }
 
 type Ready struct {
@@ -135,8 +140,17 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 // GET /health
 // Returns all of the health status of all the components of the application.
 func GetHealth(w http.ResponseWriter, r *http.Request) {
+	var m runtime.MemStats
 	var data Health
-	data.Health = "OK"
+
+	runtime.ReadMemStats(&m)
+
+	data.Refer = "https://golang.org/pkg/runtime/#MemStats"
+	data.Alloc = m.Alloc / 1024
+	data.TotalAlloc = m.TotalAlloc / 1024
+	data.Sys = m.Sys / 1024
+	data.NumGC = m.NumGC
+
 	respondWithJSON(w, http.StatusOK, data)
 }
 
