@@ -39,7 +39,6 @@ type Configuration struct {
 type Quote struct {
 	gorm.Model
 
-	ID     int     `json:"id"`
 	Quote  string  `json:"quote"`
 	Author *Author `json:"author,omitempty"`
 }
@@ -53,7 +52,6 @@ var conf Configuration
 type Author struct {
 	gorm.Model
 
-	ID          int       `json:"id"`
 	First       string    `json:"first,omitempty"`
 	Last        string    `json:"last,omitempty"`
 	Born        time.Time `json:"born,omitempty"`
@@ -108,22 +106,22 @@ func GetQuotes(w http.ResponseWriter, r *http.Request) {
 // GET /quote/{id}
 // Returns a quote in the JSON format provided the target ID is valid.
 func GetQuote(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	quoteID, err := strconv.Atoi(params["id"])
-	if (err != nil) {
-		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
-		return
-	}
-
-	for _, item := range quotes {
-		if item.ID == quoteID {
-			respondWithJSON(w, http.StatusOK, item)
-			return
-		}
-	}
-
-	// quoteID not found
-	respondWithError(w, http.StatusNotFound, "Quote not found.")
+	//params := mux.Vars(r)
+	//quoteID, err := strconv.Atoi(params["id"])
+	//if (err != nil) {
+	//	respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
+	//	return
+	//}
+	//
+	//for _, item := range quotes {
+	//	if item.ID == quoteID {
+	//		respondWithJSON(w, http.StatusOK, item)
+	//		return
+	//	}
+	//}
+	//
+	//// quoteID not found
+	//respondWithError(w, http.StatusNotFound, "Quote not found.")
 	return
 }
 
@@ -131,19 +129,19 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 // POST /quote/{id}
 // Returns all quotes including the newly added quote made by the POST request.
 func CreateQuote(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	quoteID, err := strconv.Atoi(params["id"])
-	if (err != nil) {
-		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
-		return
-	}
-
-	var quote Quote
-	_ = json.NewDecoder(r.Body).Decode(&quote)
-	quote.ID = quoteID
-	quotes = append(quotes, quote)
-
-	respondWithJSON(w, http.StatusCreated, quotes)
+	//params := mux.Vars(r)
+	//quoteID, err := strconv.Atoi(params["id"])
+	//if (err != nil) {
+	//	respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
+	//	return
+	//}
+	//
+	//var quote Quote
+	//_ = json.NewDecoder(r.Body).Decode(&quote)
+	////quote.ID = quoteID
+	////quotes = append(quotes, quote)
+	//
+	//respondWithJSON(w, http.StatusCreated, quotes)
 	return
 }
 
@@ -151,22 +149,22 @@ func CreateQuote(w http.ResponseWriter, r *http.Request) {
 // DELETE /quote/{id}
 // Returns all quotes which will exclude the deleted quote made by the DELETE request.
 func DeleteQuote(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	quoteID, err := strconv.Atoi(params["id"])
-	if (err != nil) {
-		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
-		return
-	}
-
-	for index, item := range quotes {
-		if item.ID == quoteID {
-			quotes = append(quotes[:index], quotes[:index+1]...)
-			break
-		}
-	}
-	// Add support for reporting quote not found
-
-	respondWithJSON(w, http.StatusOK, quotes)
+	//params := mux.Vars(r)
+	//quoteID, err := strconv.Atoi(params["id"])
+	//if (err != nil) {
+	//	respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
+	//	return
+	//}
+	//
+	////for index, item := range quotes {
+	////	if item.ID == quoteID {
+	////		quotes = append(quotes[:index], quotes[:index+1]...)
+	////		break
+	////	}
+	////}
+	//// Add support for reporting quote not found
+	//
+	//respondWithJSON(w, http.StatusOK, quotes)
 }
 
 // GetHealth looks up the health of the application.
@@ -216,8 +214,10 @@ func GetVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 // main function
+// Starting point for application
 func main() {
 
+	// Postgres database
 	fmt.Println("Starting DB connection...")
 	db, err = gorm.Open(
 		"postgres",
@@ -235,6 +235,7 @@ func main() {
 	db.AutoMigrate(&Quote{})
 	db.AutoMigrate(&Author{})
 
+	// API router
     // Consider use of .StrictSlash(true)
 	router := mux.NewRouter()
 
@@ -284,67 +285,6 @@ func main() {
 		handlers.LoggingHandler(os.Stdout, handlers.CORS(
 			handlers.AllowedMethods([]string{"GET", "POST", "DELETE"}),
 			handlers.AllowedOrigins([]string{"*"}))(router))))
-}
-
-// LoadData manages the gathering of quote data.
-// Used as data store to mimic a database
-// Returns an array of quotes
-func LoadData() []Quote {
-	var data []Quote
-
-	data = append(data, Quote{
-		ID: 1,
-		Quote: "When it's pouring rain and you're bowling along through the wet, there's satisfaction in knowing you're out there and the others aren't.",
-		Author: &Author{
-			ID: 1,
-			First: "Peter",
-			Last: "Snell",
-			Born: time.Date(1938, time.December, 17, 0, 0, 0, 0, time.UTC),
-			Description: "A New Zealand former middle-distance runner. He won three Olympic gold medals, and is the only male since 1920 to win the 800 and 1500 metres at the same Olympics, in 1964.",
-			BioLink:"https://en.wikipedia.org/wiki/Peter_Snell"}})
-	data = append(data, Quote{
-		ID: 2,
-		Quote: "I run because it's my passion, and not just a sport. Every time I walk out the door, I know why I'm going where I'm going and I'm already focused on that special place where I find my peace and solitude. Running, to me, is more than just a physical exercise... it's a consistent reward for victory!",
-		Author: &Author{
-			ID: 2,
-			First: "Sasha",
-			Last: "Azevedo",
-			Born: time.Date(1978, time.May, 20, 0, 0, 0, 0, time.UTC),
-			Description: "Modeling, acting and photography",
-			BioLink:"http://www.imdb.com/name/nm1659315/bio"}})
-	data = append(data, Quote{
-		ID: 3,
-		Quote: "If you always put limits on what you can do, physical or anything else, it'll spread over into the rest of your life. It'll spread into your work, into your morality, into your entire being. There are no limits. There are plateaus, but you must not stay there, you must go beyond them.",
-		Author: &Author{
-			ID: 3,
-			First: "Bruce",
-			Last: "Lee",
-			Born: time.Date(1940, time.November, 27, 0, 0, 0, 0, time.UTC),
-			Died: time.Date(1973, time.July, 20, 0, 0, 0, 0, time.UTC),
-			Description: "A Hong Kong and American actor, film director, martial artist, martial arts instructor, philosopher and founder of the martial art Jeet Kune Do.",
-			BioLink:"https://en.wikipedia.org/wiki/Bruce_Lee"}})
-	data = append(data, Quote{
-		ID: 4,
-		Quote: "Motivation is what gets you started. Habit is what keeps you going.",
-		Author: &Author{
-			ID: 4,
-			First: "Jim",
-			Last: "Ruyn",
-			Born: time.Date(1947, time.April, 29, 0, 0, 0, 0, time.UTC),
-			Description: "A former American politician and track and field athlete. He won a silver medal in the men's 1500 metres at the 1968 Summer Olympics, and was the first high school athlete to run a mile in under four minutes.",
-			BioLink:"https://en.wikipedia.org/wiki/Jim_Ryun"}})
-	data = append(data, Quote{
-		ID: 5,
-		Quote: "I don't think about the miles that are coming down the road, I don't think about the mile I'm on right now, I don't think about the miles I've already covered. I think about what I'm doing right now, just being lost in the moment.",
-		Author: &Author{
-			ID: 5,
-			First: "Ryan",
-			Last: "Hall",
-			Born: time.Date(1982, time.October, 14, 0, 0, 0, 0, time.UTC),
-			Description: "U.S. Olympic marathoner",
-			BioLink:"https://en.wikipedia.org/wiki/Ryan_Hall_(runner)"}})
-
-	return data
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
