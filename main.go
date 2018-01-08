@@ -39,16 +39,11 @@ type Configuration struct {
 type Quote struct {
 	gorm.Model
 
-	Quote  string  `json:"quote"`
-	Author *Author `json:"author,omitempty"`
+	Quote    string  `json:"quote"`
+	AuthorID uint    `json:"author-id"`
 }
 
-var quotes []Quote
-var db *gorm.DB
-var err error
-var conf Configuration
-
-// Authour type, referenced by core items: quotes, publications, etc.
+// Author type, referenced by core items: quotes, publications, etc.
 type Author struct {
 	gorm.Model
 
@@ -58,6 +53,7 @@ type Author struct {
 	Died        time.Time `json:"died,omitempty"`
 	Description string    `json:"description,omitempty"`
 	BioLink     string    `json:"biolink,omitempty"`
+	Quotes      []Quote   `gorm:"ForeignKey:AuthorID";json:"quotes,omitempty"`
 }
 
 type Health struct {
@@ -77,6 +73,12 @@ type Version struct {
 	ReleaseDate string `json:"release-date,omitempty"`
 }
 
+var quotes []Quote
+var authors []Author
+var db *gorm.DB
+var err error
+var conf Configuration
+
 // init manages initalization logic
 // Uses envionment variable and configuration files.
 // Gathers application run time settings
@@ -93,6 +95,40 @@ func init() {
 	if (err != nil) {
 		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
 	}
+}
+
+// GetAuthors looks up all of the authors.
+// GET /authors
+// Populates authors slice with all of the author records in the database and returns JSON formatted listing.
+func GetAuthors(w http.ResponseWriter, r *http.Request) {
+	authors = []Author{}
+	db.Find(&authors)
+
+	respondWithJSON(w, http.StatusOK, authors)
+}
+
+// GetAuthor looks up a specific author by ID.
+// GET /author
+// Looks up a author in the database by ID and returns results JSON format.
+func GetAuthor(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var author Author
+	db.First(&author, params["id"])
+
+	respondWithJSON(w, http.StatusOK, author)
+}
+
+// CreateAuthor creates a new author.
+// POST /author
+// Returns newly created author ID.
+func CreateAuthor(w http.ResponseWriter, r *http.Request) {
+
+	var author Author
+	_ = json.NewDecoder(r.Body).Decode(&author)
+	db.Create(&author)
+
+	respondWithJSON(w, http.StatusCreated, author)
+	return
 }
 
 // GetQuotes looks up all of the quotes.
@@ -125,24 +161,25 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// CreateQuote creates a new quote.
-// POST /quote/{id}
-// Returns all quotes including the newly added quote made by the POST request.
+// CreateQuote creates a new quote. Validates that the author ID exists.
+// POST /quote
+// Returns newly created quote. Including the ID of quote and the details of the author.
 func CreateQuote(w http.ResponseWriter, r *http.Request) {
-	//params := mux.Vars(r)
-	//quoteID, err := strconv.Atoi(params["id"])
-	//if (err != nil) {
-	//	respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
+
+	var quote Quote
+	_ = json.NewDecoder(r.Body).Decode(&quote)
+
+	// Validate that the author ID exists
+	//var author Author
+	//db.First(&author, quote.AuthorID)
+	//if (author.ID == 0) {
+	//	respondWithError(w, http.StatusBadRequest, "Invalid author ID")
 	//	return
 	//}
-	//
-	//var quote Quote
-	//_ = json.NewDecoder(r.Body).Decode(&quote)
-	////quote.ID = quoteID
-	////quotes = append(quotes, quote)
-	//
-	//respondWithJSON(w, http.StatusCreated, quotes)
-	return
+
+	db.Create(&quote)
+
+	respondWithJSON(w, http.StatusCreated, quote)
 }
 
 // DeleteQuote deletes a quote by quote ID.
@@ -223,6 +260,7 @@ func main() {
 		"postgres",
 		"host=" + conf.DbHost + " " +
 		"user=" + conf.DbUser + " " +
+		"port=5432 " +
 		"dbname=" + conf.DbName + " " +
 		"sslmode=disable " +
 		"password=" + conf.DbPassword)
@@ -239,37 +277,55 @@ func main() {
     // Consider use of .StrictSlash(true)
 	router := mux.NewRouter()
 
+	subRouterAuthors := router.PathPrefix("/authors").Subrouter()
+	subRouterAuthor := router.PathPrefix("/author").Subrouter()
+	//subRouterQuotes := router.PathPrefix("/quotes").Subrouter()
+	subRouterQuote := router.PathPrefix("/quote").Subrouter()
+	subRouterHealth := router.PathPrefix("/health").Subrouter()
+	subRouterReady := router.PathPrefix("/ready").Subrouter()
+	subRouterVersion := router.PathPrefix("/version").Subrouter()
+
+	// GET /authors
+	subRouterAuthors.HandleFunc("", GetAuthors).Methods("GET")
+	subRouterAuthors.HandleFunc("/", GetAuthors).Methods("GET")
+
+	// GET /author
+	subRouterAuthor.HandleFunc("/{id}",  GetAuthor).Methods("GET")
+	subRouterAuthor.HandleFunc("/{id}/", GetAuthor).Methods("GET")
+
+	// POST /author
+	subRouterAuthor.HandleFunc("", CreateAuthor).Methods("POST")
+	subRouterAuthor.HandleFunc("/", CreateAuthor).Methods("POST")
+
+	// DELETE /author
+	//subRouterAuthor.HandleFunc("/{id}",  DeleteAuthor).Methods("DELETE")
+	//subRouterAuthor.HandleFunc("/{id}/", DeleteAuthor).Methods("DELETE")
+
 	// GET /quotes
-	subRouterQuotes := router.PathPrefix("/quotes").Subrouter()
-	subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
-	subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
+	//subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
+	//subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
 
 	// GET /quote
-	subRouterQuote := router.PathPrefix("/quote").Subrouter()
-	subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
-	subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
+	//subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
+	//subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
 
 	// POST /quote
-	subRouterQuote.HandleFunc("/",      CreateQuote).Methods("POST")
-	subRouterQuote.HandleFunc("/{id}",  CreateQuote).Methods("POST")
-	subRouterQuote.HandleFunc("/{id}/", CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("", CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("/", CreateQuote).Methods("POST")
 
 	// DELETE /quote
-	subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
-	subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
+	//subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
+	//subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
 
 	// GET /health
-	subRouterHealth := router.PathPrefix("/health").Subrouter()
 	subRouterHealth.HandleFunc("", GetHealth).Methods("GET")
 	subRouterHealth.HandleFunc("/", GetHealth).Methods("GET")
 
 	// GET /ready
-	subRouterReady := router.PathPrefix("/ready").Subrouter()
 	subRouterReady.HandleFunc("", GetReady).Methods("GET")
 	subRouterReady.HandleFunc("/", GetReady).Methods("GET")
 
 	// GET /version
-	subRouterVersion := router.PathPrefix("/version").Subrouter()
 	subRouterVersion.HandleFunc("", GetVersion).Methods("GET")
 	subRouterVersion.HandleFunc("/", GetVersion).Methods("GET")
 
