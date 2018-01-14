@@ -4,23 +4,22 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"encoding/json"
-	"time"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
-	"os"
-	"fmt"
-	"runtime"
+	"time"
 
 	"github.com/tkanos/gonfig"
+	"github.com/jinzhu/gorm"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
-
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/lib/pq"
 )
 
 // Configuration type, settings common to application
@@ -101,8 +100,13 @@ func init() {
 // GET /authors
 // Populates authors slice with all of the author records in the database and returns JSON formatted listing.
 func GetAuthors(w http.ResponseWriter, r *http.Request) {
+	count := 0
 	authors = []Author{}
-	db.Find(&authors)
+	db.Find(&authors).Count(&count)
+	if count == 0 {
+		respondWithError(w, http.StatusOK, "Author records not found.")
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, authors)
 }
@@ -112,8 +116,19 @@ func GetAuthors(w http.ResponseWriter, r *http.Request) {
 // Looks up a author in the database by ID and returns results JSON format.
 func GetAuthor(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	authorID, err := strconv.Atoi(params["id"])
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Invalid author ID")
+		return
+	}
+
 	var author Author
-	db.First(&author, params["id"])
+	if (db.First(&author, authorID).RecordNotFound()) {
+		message := []string{}
+		message = append(message, "Author ID: ", strconv.Itoa(int(authorID)), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, author)
 }
@@ -125,10 +140,40 @@ func CreateAuthor(w http.ResponseWriter, r *http.Request) {
 
 	var author Author
 	_ = json.NewDecoder(r.Body).Decode(&author)
-	db.Create(&author)
 
-	respondWithJSON(w, http.StatusCreated, author)
-	return
+	// Create new record
+	if err := db.Create(&author).Error; err != nil {
+		respondWithError(w, http.StatusBadRequest, "Error creatng author record.")
+		return
+	}
+
+	message := []string{}
+	message = append(message, "Author ID: ", strconv.Itoa(int(author.ID)), " created.")
+	respondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
+}
+
+// Delete Author deletes an author by author ID.
+// DELETE /author/{id}
+// Deletes author by author ID.
+func DeleteAuthor(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	authorID, err := strconv.Atoi(params["id"])
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Invalid author ID")
+		return
+	}
+
+	message := []string{}
+	var author Author
+	if (db.First(&author, authorID).RecordNotFound()) {
+		message = append(message, "Author ID: ", strconv.Itoa(authorID), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
+	}
+	db.Delete(&author)
+
+	message = append(message, "Author ID: ", strconv.Itoa(authorID), " deleted.")
+	respondWithJSON(w, http.StatusOK, map[string]string{"status": strings.Join(message, "")})
 }
 
 // GetQuotes looks up all of the quotes.
@@ -260,7 +305,6 @@ func main() {
 		"postgres",
 		"host=" + conf.DbHost + " " +
 		"user=" + conf.DbUser + " " +
-		"port=5432 " +
 		"dbname=" + conf.DbName + " " +
 		"sslmode=disable " +
 		"password=" + conf.DbPassword)
@@ -298,8 +342,8 @@ func main() {
 	subRouterAuthor.HandleFunc("/", CreateAuthor).Methods("POST")
 
 	// DELETE /author
-	//subRouterAuthor.HandleFunc("/{id}",  DeleteAuthor).Methods("DELETE")
-	//subRouterAuthor.HandleFunc("/{id}/", DeleteAuthor).Methods("DELETE")
+	subRouterAuthor.HandleFunc("/{id}",  DeleteAuthor).Methods("DELETE")
+	subRouterAuthor.HandleFunc("/{id}/", DeleteAuthor).Methods("DELETE")
 
 	// GET /quotes
 	//subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
