@@ -115,6 +115,8 @@ func GetAuthors(w http.ResponseWriter, r *http.Request) {
 // GET /author
 // Looks up a author in the database by ID and returns results JSON format.
 func GetAuthor(w http.ResponseWriter, r *http.Request) {
+	var author Author
+
 	params := mux.Vars(r)
 	authorID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
@@ -122,13 +124,25 @@ func GetAuthor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var author Author
+	// Check that author ID is valid
 	if (db.First(&author, authorID).RecordNotFound()) {
 		message := []string{}
 		message = append(message, "Author ID: ", strconv.Itoa(int(authorID)), " not found.")
 		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
 		return
 	}
+
+	// Fails
+	// db.Table("authors").Select("*").Joins("JOIN quotes ON authors.ID = quotes.author_id").Scan(&author)
+	// db.Table("author").Select("*").Joins("left join quotes on author.ID = quotes.AuthorID").Scan(&results)
+
+	// Functional query
+	// SELECT first, last, quotes.ID, quotes.quote FROM authors JOIN quotes on authors.ID = quotes.author_id WHERE authors.id = 3;
+
+	// Lookup author quotes
+	quotes := []Quote{}
+	db.Where("author_id = ?", authorID).Find(&quotes)
+	author.Quotes = quotes
 
 	respondWithJSON(w, http.StatusOK, author)
 }
@@ -211,20 +225,22 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 // Returns newly created quote. Including the ID of quote and the details of the author.
 func CreateQuote(w http.ResponseWriter, r *http.Request) {
 
+	message := []string{}
 	var quote Quote
 	_ = json.NewDecoder(r.Body).Decode(&quote)
 
 	// Validate that the author ID exists
-	//var author Author
-	//db.First(&author, quote.AuthorID)
-	//if (author.ID == 0) {
-	//	respondWithError(w, http.StatusBadRequest, "Invalid author ID")
-	//	return
-	//}
+	var author Author
+	if (db.First(&author, quote.AuthorID).RecordNotFound()) {
+		message = append(message, "Invalid author, ID: ", strconv.Itoa(int(quote.AuthorID)), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
+	}
 
 	db.Create(&quote)
-
-	respondWithJSON(w, http.StatusCreated, quote)
+	message = append(message, "Quote ID: ", strconv.Itoa(int(quote.ID)), " created for author: ",
+		strconv.Itoa(int(quote.AuthorID)), ".")
+	respondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
 }
 
 // DeleteQuote deletes a quote by quote ID.
