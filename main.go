@@ -39,7 +39,8 @@ type Quote struct {
 	gorm.Model
 
 	Quote    string  `json:"quote"`
-	AuthorID uint    `json:"author-id"`
+	AuthorID uint    `gorm:"ForeignKey:Author.ID";json:"author-id"`
+	Author Author	 `json:"author,omitempty"`
 }
 
 // Author type, referenced by core items: quotes, publications, etc.
@@ -52,7 +53,7 @@ type Author struct {
 	Died        time.Time `json:"died,omitempty"`
 	Description string    `json:"description,omitempty"`
 	BioLink     string    `json:"biolink,omitempty"`
-	Quotes      []Quote   `gorm:"ForeignKey:AuthorID";json:"quotes,omitempty"`
+	Quotes      []Quote   `json:"quotes,omitempty"`
 }
 
 type Health struct {
@@ -140,6 +141,7 @@ func GetAuthor(w http.ResponseWriter, r *http.Request) {
 	// SELECT first, last, quotes.ID, quotes.quote FROM authors JOIN quotes on authors.ID = quotes.author_id WHERE authors.id = 3;
 
 	// Lookup author quotes
+	// @todo: ISSUE-16 - create parameter to trigger this lookup rather than being the default
 	quotes := []Quote{}
 	db.Where("author_id = ?", authorID).Find(&quotes)
 	author.Quotes = quotes
@@ -168,7 +170,7 @@ func CreateAuthor(w http.ResponseWriter, r *http.Request) {
 
 // Delete Author deletes an author by author ID.
 // DELETE /author/{id}
-// Deletes author by author ID.
+// Returns a status message that includes the ID of the author record deleted.
 func DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	authorID, err := strconv.Atoi(params["id"])
@@ -192,8 +194,16 @@ func DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 
 // GetQuotes looks up all of the quotes.
 // GET /quotes
-// Returns all of the quotes in the JSON format.
+// Returns all of the quotes in JSON format.
 func GetQuotes(w http.ResponseWriter, r *http.Request) {
+	count := 0
+	quotes = []Quote{}
+	db.Find(&quotes).Count(&count)
+	if count == 0 {
+		respondWithError(w, http.StatusOK, "Quote records not found.")
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, quotes)
 }
 
@@ -201,28 +211,35 @@ func GetQuotes(w http.ResponseWriter, r *http.Request) {
 // GET /quote/{id}
 // Returns a quote in the JSON format provided the target ID is valid.
 func GetQuote(w http.ResponseWriter, r *http.Request) {
-	//params := mux.Vars(r)
-	//quoteID, err := strconv.Atoi(params["id"])
-	//if (err != nil) {
-	//	respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
-	//	return
-	//}
-	//
-	//for _, item := range quotes {
-	//	if item.ID == quoteID {
-	//		respondWithJSON(w, http.StatusOK, item)
-	//		return
-	//	}
-	//}
-	//
-	//// quoteID not found
-	//respondWithError(w, http.StatusNotFound, "Quote not found.")
-	return
+	var quote Quote
+
+	params := mux.Vars(r)
+	quoteID, err := strconv.Atoi(params["id"])
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
+		return
+	}
+
+	// Check that quote ID is valid
+	if (db.First(&quote, quoteID).RecordNotFound()) {
+		message := []string{}
+		message = append(message, "Quote ID: ", strconv.Itoa(int(quoteID)), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
+	}
+
+	// Lookup quote author
+	// @todo: ISSUE-16 - create parameter to trigger this lookup rather than being the default
+	author := Author{}
+	db.Where("quote_id = ?", quoteID).Find(&author)
+	quote.Author = author
+
+	respondWithJSON(w, http.StatusOK, quote)
 }
 
 // CreateQuote creates a new quote. Validates that the author ID exists.
 // POST /quote
-// Returns newly created quote. Including the ID of quote and the details of the author.
+// Returns the ID of new quote as a part of the "status" response message.
 func CreateQuote(w http.ResponseWriter, r *http.Request) {
 
 	message := []string{}
@@ -245,24 +262,28 @@ func CreateQuote(w http.ResponseWriter, r *http.Request) {
 
 // DeleteQuote deletes a quote by quote ID.
 // DELETE /quote/{id}
-// Returns all quotes which will exclude the deleted quote made by the DELETE request.
+// Returns.
 func DeleteQuote(w http.ResponseWriter, r *http.Request) {
-	//params := mux.Vars(r)
-	//quoteID, err := strconv.Atoi(params["id"])
-	//if (err != nil) {
-	//	respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
-	//	return
-	//}
-	//
-	////for index, item := range quotes {
-	////	if item.ID == quoteID {
-	////		quotes = append(quotes[:index], quotes[:index+1]...)
-	////		break
-	////	}
-	////}
-	//// Add support for reporting quote not found
-	//
-	//respondWithJSON(w, http.StatusOK, quotes)
+	params := mux.Vars(r)
+	quoteID, err := strconv.Atoi(params["id"])
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
+		return
+	}
+
+	message := []string{}
+	var quote Quote
+	if (db.First(&quote, quoteID).RecordNotFound()) {
+		message = append(message, "Quote ID: ", strconv.Itoa(quoteID), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
+	}
+	db.Delete(&quote)
+
+	// @todo: remove author ID from quotes that reference the deleted author
+
+	message = append(message, "Quote ID: ", strconv.Itoa(quoteID), " deleted.")
+	respondWithJSON(w, http.StatusOK, map[string]string{"status": strings.Join(message, "")})
 }
 
 // GetHealth looks up the health of the application.
@@ -339,7 +360,7 @@ func main() {
 
 	subRouterAuthors := router.PathPrefix("/authors").Subrouter()
 	subRouterAuthor := router.PathPrefix("/author").Subrouter()
-	//subRouterQuotes := router.PathPrefix("/quotes").Subrouter()
+	subRouterQuotes := router.PathPrefix("/quotes").Subrouter()
 	subRouterQuote := router.PathPrefix("/quote").Subrouter()
 	subRouterHealth := router.PathPrefix("/health").Subrouter()
 	subRouterReady := router.PathPrefix("/ready").Subrouter()
@@ -362,20 +383,20 @@ func main() {
 	subRouterAuthor.HandleFunc("/{id}/", DeleteAuthor).Methods("DELETE")
 
 	// GET /quotes
-	//subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
-	//subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
+	subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
+	subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
 
 	// GET /quote
-	//subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
-	//subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
+	subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
+	subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
 
 	// POST /quote
 	subRouterQuote.HandleFunc("", CreateQuote).Methods("POST")
 	subRouterQuote.HandleFunc("/", CreateQuote).Methods("POST")
 
 	// DELETE /quote
-	//subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
-	//subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
+	subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
+	subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
 
 	// GET /health
 	subRouterHealth.HandleFunc("", GetHealth).Methods("GET")
@@ -403,10 +424,12 @@ func main() {
 			handlers.AllowedOrigins([]string{"*"}))(router))))
 }
 
+// respondWithError generates JSON formatted response values for error messages
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	respondWithJSON(w, code, map[string]string{"error": message})
 }
 
+// respondWithJSON generates JSON formatted response values for non error messages
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
