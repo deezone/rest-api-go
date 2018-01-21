@@ -6,6 +6,7 @@ package toolbox
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/tkanos/gonfig"
@@ -14,6 +15,7 @@ import (
 // Configuration type, settings common to application
 type Configuration struct {
 	Port        int
+	PortStr[]   string
 	Version     string
 	ReleaseDate string
 	Environment string
@@ -42,5 +44,12 @@ func init() {
 	if (Err != nil) {
 		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
 	}
+
+	if (Conf.Port == 0) {
+		fmt.Println("Application port setting not found")
+		os.Exit(1)
+	}
+	port := []string{}
+	Conf.PortStr = append(port, ":", strconv.Itoa(Conf.Port))
 }
 

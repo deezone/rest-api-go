@@ -12,9 +12,7 @@ type Ready struct {
 	Ready string `json:"ready,omitempty"`
 }
 
-//
-//
-//
+// init - one time initialization logic
 func init() {
 	fmt.Println("- toolbox/ready application package initialized")
 }

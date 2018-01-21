@@ -9,11 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 
-	"github.com/tkanos/gonfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -21,23 +19,6 @@ import (
 
 	"github.com/deezone/rest-api-go/toolbox"
 )
-
-type Health struct {
-	Refer      string `json:"reference,omitempty"`
-	Alloc      uint64 `json:"alloc,omitempty"`
-	TotalAlloc uint64 `json:"total-alloc,omitempty"`
-	Sys        uint64 `json:"sys,omitempty"`
-	NumGC      uint32 `json:"numgc,omitempty"`
-}
-
-type Ready struct {
-	Ready string `json:"ready,omitempty"`
-}
-
-type Version struct {
-	Version string     `json:"version,omitempty"`
-	ReleaseDate string `json:"release-date,omitempty"`
-}
 
 var quotes []toolbox.Quote
 var quotesmin []toolbox.QuoteMin
@@ -248,112 +229,12 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 	toolbox.RespondWithJSON(w, http.StatusOK, map[string]string{"status": strings.Join(message, "")})
 }
 
-// GetHealth looks up the health of the application.
-// GET /health
-// Returns all of the health status of all the components of the application.
-func GetHealth(w http.ResponseWriter, r *http.Request) {
-	var m runtime.MemStats
-	var data Health
-
-	runtime.ReadMemStats(&m)
-
-	data.Refer = "https://golang.org/pkg/runtime/#MemStats"
-	data.Alloc = m.Alloc / 1024
-	data.TotalAlloc = m.TotalAlloc / 1024
-	data.Sys = m.Sys / 1024
-	data.NumGC = m.NumGC
-
-	toolbox.RespondWithJSON(w, http.StatusOK, data)
-}
-
-// GetVersion looks up the current version of the application.
-// GET /version
-// Returns the current version of the application.
-func GetVersion(w http.ResponseWriter, r *http.Request) {
-	var data Version
-	configuration := toolbox.Configuration{}
-
-	env := []string{}
-	env = append(env, "config/config.", configuration.Environment, ".json")
-	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
-	if (err != nil) {
-		toolbox.RespondWithError(w, http.StatusBadRequest, "Application Version details unknown!")
-	}
-
-	data.Version = configuration.Version
-	data.ReleaseDate = configuration.ReleaseDate
-	toolbox.RespondWithJSON(w, http.StatusOK, data)
-}
-
 // main function
 // Starting point for application
 func main() {
 
-	// API router
-    // Consider use of .StrictSlash(true)
-	router := mux.NewRouter()
-
-	subRouterAuthors := router.PathPrefix("/authors").Subrouter()
-	subRouterAuthor := router.PathPrefix("/author").Subrouter()
-	subRouterQuotes := router.PathPrefix("/quotes").Subrouter()
-	subRouterQuote := router.PathPrefix("/quote").Subrouter()
-	subRouterHealth := router.PathPrefix("/health").Subrouter()
-	subRouterReady := router.PathPrefix("/ready").Subrouter()
-	subRouterVersion := router.PathPrefix("/version").Subrouter()
-
-	// GET /authors
-	subRouterAuthors.HandleFunc("", GetAuthors).Methods("GET")
-	subRouterAuthors.HandleFunc("/", GetAuthors).Methods("GET")
-
-	// GET /author
-	subRouterAuthor.HandleFunc("/{id}",  GetAuthor).Methods("GET")
-	subRouterAuthor.HandleFunc("/{id}/", GetAuthor).Methods("GET")
-
-	// POST /author
-	subRouterAuthor.HandleFunc("", CreateAuthor).Methods("POST")
-	subRouterAuthor.HandleFunc("/", CreateAuthor).Methods("POST")
-
-	// DELETE /author
-	subRouterAuthor.HandleFunc("/{id}",  DeleteAuthor).Methods("DELETE")
-	subRouterAuthor.HandleFunc("/{id}/", DeleteAuthor).Methods("DELETE")
-
-	// GET /quotes
-	subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
-	subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
-
-	// GET /quote
-	subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
-	subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
-
-	// POST /quote
-	subRouterQuote.HandleFunc("", CreateQuote).Methods("POST")
-	subRouterQuote.HandleFunc("/", CreateQuote).Methods("POST")
-
-	// DELETE /quote
-	subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
-	subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
-
-	// GET /health
-	subRouterHealth.HandleFunc("", GetHealth).Methods("GET")
-	subRouterHealth.HandleFunc("/", GetHealth).Methods("GET")
-
-	// GET /ready
-	subRouterReady.HandleFunc("", toolbox.GetReady).Methods("GET")
-	subRouterReady.HandleFunc("/", toolbox.GetReady).Methods("GET")
-
-	// GET /version
-	subRouterVersion.HandleFunc("", GetVersion).Methods("GET")
-	subRouterVersion.HandleFunc("/", GetVersion).Methods("GET")
-
-	if (toolbox.Conf.Port == 0) {
-		fmt.Println("Application port setting not found")
-		os.Exit(1)
-	}
-	port := []string{}
-	port = append(port, ":", strconv.Itoa(toolbox.Conf.Port))
-
-	fmt.Printf("Starting server on port %s\n", strings.Join(port, ""))
-	log.Fatal(http.ListenAndServe(strings.Join(port, ""),
+	fmt.Printf("Starting server on port %s\n", strings.Join(toolbox.Conf.PortStr, ""))
+	log.Fatal(http.ListenAndServe(strings.Join(toolbox.Conf.PortStr, ""),
 		handlers.LoggingHandler(os.Stdout, handlers.CORS(
 			handlers.AllowedMethods([]string{"GET", "POST", "DELETE"}),
 			handlers.AllowedOrigins([]string{"*"}))(router))))
