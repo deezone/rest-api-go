@@ -4,19 +4,22 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"encoding/json"
-	"time"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
-	"os"
-	"fmt"
-	"runtime"
+	"time"
 
 	"github.com/tkanos/gonfig"
+	"github.com/jinzhu/gorm"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/lib/pq"
 )
 
 // Configuration type, settings common to application
@@ -25,26 +28,50 @@ type Configuration struct {
 	Version     string
 	ReleaseDate string
 	Environment string
+	DbHost      string
+	DbUser      string
+	DbName      string
+	DbPassword  string
+}
+
+// Quote type (more like an object), manages the details of a quote.
+type QuoteMin struct {
+	// gorm.Model
+	ID        uint        `gorm:"primary;key";json:"id"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+
+	Quote     string      `json:"quote"`
+	AuthorID  uint        `gorm:"index";json:"authorid"`
 }
 
 // Quote type (more like an object), manages the details of a quote.
 type Quote struct {
-	ID     int     `json:"id"`
-	Quote  string  `json:"quote"`
-	Author *Author `json:"authour,omitempty"`
+	QuoteMin
+	Author 	 AuthorMin	 `json:"author,omitempty"`
 }
 
-var quotes []Quote
+// Author type, referenced by core items: quotes, publications, etc.
+type AuthorMin struct {
+	// gorm.Model
+	ID          uint       `gorm:"primary;key";json:"id"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   *time.Time
 
-// Authour type, referenced by core items: quotes, publications, etc.
+	First       string     `json:"first,omitempty"`
+	Last        string     `json:"last,omitempty"`
+	Born        time.Time  `json:"born,omitempty"`
+	Died        time.Time  `json:"died,omitempty"`
+	Description string     `json:"description,omitempty"`
+	BioLink     string     `json:"biolink,omitempty"`
+}
+
+// Author type, referenced by core items: quotes, publications, etc.
 type Author struct {
-	ID          int       `json:"id"`
-	First       string    `json:"first,omitempty"`
-	Last        string    `json:"last,omitempty"`
-	Born        time.Time `json:"born,omitempty"`
-	Died        time.Time `json:"died,omitempty"`
-	Description string    `json:"description,omitempty"`
-	BioLink     string    `json:"biolink,omitempty"`
+	AuthorMin
+	Quotes      []QuoteMin `json:"quotes,omitempty"` // One-To-Many
 }
 
 type Health struct {
@@ -64,10 +91,153 @@ type Version struct {
 	ReleaseDate string `json:"release-date,omitempty"`
 }
 
+var quotes []Quote
+var quotesmin []QuoteMin
+var authors []Author
+var authorsmin []AuthorMin
+var db *gorm.DB
+var err error
+var conf Configuration
+
+// init manages initalization logic
+// Uses envionment variable and configuration files.
+// Gathers application run time settings
+func init() {
+
+	conf.Environment = os.Getenv("REST_API_ENV")
+	if (conf.Environment == "") {
+		fmt.Println("REST_API_ENV not defined, using default development environment settings.")
+		conf.Environment = "development"
+	}
+	env := []string{}
+	env = append(env, "config/config.", conf.Environment, ".json")
+	err := gonfig.GetConf(strings.Join(env, ""), &conf)
+	if (err != nil) {
+		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
+	}
+}
+
+// GetAuthors looks up all of the authors.
+// GET /authors
+// Populates authors slice with all of the author records in the database and returns JSON formatted listing.
+// @todo: exclude author information in quotes list with each author
+func GetAuthors(w http.ResponseWriter, r *http.Request) {
+	count := 0
+	authors = []Author{}
+	db.Find(&authors).Count(&count)
+	if count == 0 {
+		respondWithError(w, http.StatusOK, "Author records not found.")
+		return
+	}
+
+	// Lookup author quotes
+	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than being the default response
+	// @todo: ISSUE-17 - create parameter to include deleted quotes in response
+	quotesmin := []QuoteMin{}
+	for index, author := range authors {
+		db.Raw("SELECT * FROM quotes WHERE author_id = ? AND deleted_at IS NULL", author.ID).Scan(&quotesmin)
+		authors[index].Quotes = quotesmin
+	}
+
+	respondWithJSON(w, http.StatusOK, authors)
+}
+
+// GetAuthor looks up a specific author by ID.
+// GET /author
+// Looks up a author in the database by ID and returns results JSON format.
+func GetAuthor(w http.ResponseWriter, r *http.Request) {
+	var author Author
+
+	params := mux.Vars(r)
+	authorID, err := strconv.Atoi(params["id"])
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Invalid author ID")
+		return
+	}
+
+	// Check that author ID is valid
+	if (db.First(&author, authorID).RecordNotFound()) {
+		message := []string{}
+		message = append(message, "Author ID: ", strconv.Itoa(int(authorID)), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
+	}
+
+	// Lookup author quotes
+	// @todo: ISSUE-16 - create parameter to trigger this lookup rather than being the default
+	// @todo: ISSUE-17 - create parameter to include deleted quotes in response
+	quotesmin := []QuoteMin{}
+	db.Raw("SELECT * FROM quotes WHERE author_id = ? AND deleted_at IS NULL", author.ID).Scan(&quotesmin)
+	author.Quotes = quotesmin
+
+	respondWithJSON(w, http.StatusOK, author)
+}
+
+// CreateAuthor creates a new author.
+// POST /author
+// Returns newly created author ID.
+func CreateAuthor(w http.ResponseWriter, r *http.Request) {
+
+	var author Author
+	_ = json.NewDecoder(r.Body).Decode(&author)
+
+	// Create new record
+	if err := db.Create(&author).Error; err != nil {
+		respondWithError(w, http.StatusBadRequest, "Error creatng author record.")
+		return
+	}
+
+	message := []string{}
+	message = append(message, "Author ID: ", strconv.Itoa(int(author.ID)), " created.")
+	respondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
+}
+
+// Delete Author deletes an author by author ID.
+// DELETE /author/{id}
+// Returns a status message that includes the ID of the author record deleted.
+func DeleteAuthor(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	authorID, err := strconv.Atoi(params["id"])
+	if (err != nil) {
+		respondWithError(w, http.StatusBadRequest, "Invalid author ID")
+		return
+	}
+
+	message := []string{}
+	var author Author
+	if (db.First(&author, authorID).RecordNotFound()) {
+		message = append(message, "Author ID: ", strconv.Itoa(authorID), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
+	}
+	db.Delete(&author)
+
+	// @todo: ISSUE-18 - delete quotes attributed to deleted author
+
+	message = append(message, "Author ID: ", strconv.Itoa(authorID), " deleted.")
+	respondWithJSON(w, http.StatusOK, map[string]string{"status": strings.Join(message, "")})
+}
+
 // GetQuotes looks up all of the quotes.
 // GET /quotes
-// Returns all of the quotes in the JSON format.
+// Returns all of the quotes in JSON format.
 func GetQuotes(w http.ResponseWriter, r *http.Request) {
+	count := 0
+	quotes = []Quote{}
+	db.Find(&quotes).Count(&count)
+	if count == 0 {
+		respondWithError(w, http.StatusOK, "Quote records not found.")
+		return
+	}
+
+	// Lookup quote author
+	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than being the default response
+	authormin := AuthorMin{}
+	for index, quote := range quotes {
+		db.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
+		quotes[index].Author = authormin
+	}
+
 	respondWithJSON(w, http.StatusOK, quotes)
 }
 
@@ -75,6 +245,8 @@ func GetQuotes(w http.ResponseWriter, r *http.Request) {
 // GET /quote/{id}
 // Returns a quote in the JSON format provided the target ID is valid.
 func GetQuote(w http.ResponseWriter, r *http.Request) {
+	var quote Quote
+
 	params := mux.Vars(r)
 	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
@@ -82,41 +254,49 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, item := range quotes {
-		if item.ID == quoteID {
-			respondWithJSON(w, http.StatusOK, item)
-			return
-		}
+	// Check that quote ID is valid
+	if (db.First(&quote, quoteID).RecordNotFound()) {
+		message := []string{}
+		message = append(message, "Quote ID: ", strconv.Itoa(int(quoteID)), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
 	}
 
-	// quoteID not found
-	respondWithError(w, http.StatusNotFound, "Quote not found.")
-	return
+	// Lookup quote author
+	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than the default
+	authormin := AuthorMin{}
+	db.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
+	quote.Author = authormin
+
+	respondWithJSON(w, http.StatusOK, quote)
 }
 
-// CreateQuote creates a new quote.
-// POST /quote/{id}
-// Returns all quotes including the newly added quote made by the POST request.
+// CreateQuote creates a new quote. Validates that the author ID exists.
+// POST /quote
+// Returns the ID of new quote as a part of the "status" response message.
 func CreateQuote(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	quoteID, err := strconv.Atoi(params["id"])
-	if (err != nil) {
-		respondWithError(w, http.StatusBadRequest, "Invalid quote ID")
+
+	message := []string{}
+	var quote Quote
+	_ = json.NewDecoder(r.Body).Decode(&quote)
+
+	// Validate that the author ID exists
+	var author Author
+	if (db.First(&author, quote.AuthorID).RecordNotFound()) {
+		message = append(message, "Invalid author, authorid: ", strconv.Itoa(int(quote.AuthorID)), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
 		return
 	}
 
-	var quote Quote
-	_ = json.NewDecoder(r.Body).Decode(&quote)
-	quote.ID = quoteID
-	quotes = append(quotes, quote)
-
-	respondWithJSON(w, http.StatusCreated, quotes)
-	return
+	db.Create(&quote)
+	message = append(message, "Quote ID: ", strconv.Itoa(int(quote.ID)), " created for authorID: ",
+		strconv.Itoa(int(quote.AuthorID)), ".")
+	respondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
 }
 
 // DeleteQuote deletes a quote by quote ID.
 // DELETE /quote/{id}
-// Returns all quotes which will exclude the deleted quote made by the DELETE request.
+// Returns.
 func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	quoteID, err := strconv.Atoi(params["id"])
@@ -125,15 +305,19 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for index, item := range quotes {
-		if item.ID == quoteID {
-			quotes = append(quotes[:index], quotes[:index+1]...)
-			break
-		}
+	message := []string{}
+	var quote Quote
+	if (db.First(&quote, quoteID).RecordNotFound()) {
+		message = append(message, "Quote ID: ", strconv.Itoa(quoteID), " not found.")
+		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		return
 	}
-	// Add support for reporting quote not found
+	db.Delete(&quote)
 
-	respondWithJSON(w, http.StatusOK, quotes)
+	// @todo: remove author ID from quotes that reference the deleted author
+
+	message = append(message, "Quote ID: ", strconv.Itoa(quoteID), " deleted.")
+	respondWithJSON(w, http.StatusOK, map[string]string{"status": strings.Join(message, "")})
 }
 
 // GetHealth looks up the health of the application.
@@ -183,147 +367,103 @@ func GetVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 // main function
+// Starting point for application
 func main() {
-	port := LoadConfig()
-	if (port == "") {
-		fmt.Println("Application port setting not found")
-		return
+
+	// Postgres database
+	fmt.Println("Starting DB connection...")
+	db, err = gorm.Open(
+		"postgres",
+		"host=" + conf.DbHost + " " +
+		"user=" + conf.DbUser + " " +
+		"dbname=" + conf.DbName + " " +
+		"sslmode=disable " +
+		"password=" + conf.DbPassword)
+	if err != nil {
+		panic("failed to connect database")
 	}
-	fmt.Printf("Starting server on port %s\n", port)
 
-	quotes = LoadData()
+	defer db.Close()
 
+	db.AutoMigrate(&Quote{})
+	db.AutoMigrate(&Author{})
+
+	// API router
     // Consider use of .StrictSlash(true)
 	router := mux.NewRouter()
 
-	// GET /quotes
+	subRouterAuthors := router.PathPrefix("/authors").Subrouter()
+	subRouterAuthor := router.PathPrefix("/author").Subrouter()
 	subRouterQuotes := router.PathPrefix("/quotes").Subrouter()
+	subRouterQuote := router.PathPrefix("/quote").Subrouter()
+	subRouterHealth := router.PathPrefix("/health").Subrouter()
+	subRouterReady := router.PathPrefix("/ready").Subrouter()
+	subRouterVersion := router.PathPrefix("/version").Subrouter()
+
+	// GET /authors
+	subRouterAuthors.HandleFunc("", GetAuthors).Methods("GET")
+	subRouterAuthors.HandleFunc("/", GetAuthors).Methods("GET")
+
+	// GET /author
+	subRouterAuthor.HandleFunc("/{id}",  GetAuthor).Methods("GET")
+	subRouterAuthor.HandleFunc("/{id}/", GetAuthor).Methods("GET")
+
+	// POST /author
+	subRouterAuthor.HandleFunc("", CreateAuthor).Methods("POST")
+	subRouterAuthor.HandleFunc("/", CreateAuthor).Methods("POST")
+
+	// DELETE /author
+	subRouterAuthor.HandleFunc("/{id}",  DeleteAuthor).Methods("DELETE")
+	subRouterAuthor.HandleFunc("/{id}/", DeleteAuthor).Methods("DELETE")
+
+	// GET /quotes
 	subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
 	subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
 
 	// GET /quote
-	subRouterQuote := router.PathPrefix("/quote").Subrouter()
 	subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
 	subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
 
 	// POST /quote
-	subRouterQuote.HandleFunc("/",      CreateQuote).Methods("POST")
-	subRouterQuote.HandleFunc("/{id}",  CreateQuote).Methods("POST")
-	subRouterQuote.HandleFunc("/{id}/", CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("", CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("/", CreateQuote).Methods("POST")
 
 	// DELETE /quote
 	subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
 	subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
 
 	// GET /health
-	subRouterHealth := router.PathPrefix("/health").Subrouter()
 	subRouterHealth.HandleFunc("", GetHealth).Methods("GET")
 	subRouterHealth.HandleFunc("/", GetHealth).Methods("GET")
 
 	// GET /ready
-	subRouterReady := router.PathPrefix("/ready").Subrouter()
 	subRouterReady.HandleFunc("", GetReady).Methods("GET")
 	subRouterReady.HandleFunc("/", GetReady).Methods("GET")
 
 	// GET /version
-	subRouterVersion := router.PathPrefix("/version").Subrouter()
 	subRouterVersion.HandleFunc("", GetVersion).Methods("GET")
 	subRouterVersion.HandleFunc("/", GetVersion).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(port,
+	if (conf.Port == 0) {
+		fmt.Println("Application port setting not found")
+		os.Exit(1)
+	}
+	port := []string{}
+	port = append(port, ":", strconv.Itoa(conf.Port))
+
+	fmt.Printf("Starting server on port %s\n", strings.Join(port, ""))
+	log.Fatal(http.ListenAndServe(strings.Join(port, ""),
 		handlers.LoggingHandler(os.Stdout, handlers.CORS(
 			handlers.AllowedMethods([]string{"GET", "POST", "DELETE"}),
 			handlers.AllowedOrigins([]string{"*"}))(router))))
 }
 
-// LoadConf manages gathering the application run time settings
-// Uses envionment variable and configuration files.
-// Returns string of configured port
-func LoadConfig() string {
-	configuration := Configuration{}
-	configuration.Environment = os.Getenv("REST_API_ENV")
-	if (configuration.Environment == "") {
-		fmt.Println("REST_API_ENV not defined, using default development environment settings.")
-		configuration.Environment = "development"
-	}
-	env := []string{}
-	env = append(env, "config/config.", configuration.Environment, ".json")
-	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
-	if (err != nil) {
-		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
-		return ""
-	}
-
-	port := []string{}
-	port = append(port, ":", strconv.Itoa(configuration.Port))
-	return strings.Join(port, "")
-}
-
-// LoadData manages the gathering of quote data.
-// Used as data store to mimic a database
-// Returns an array of quotes
-func LoadData() []Quote {
-	var data []Quote
-
-	data = append(data, Quote{
-		ID: 1,
-		Quote: "When it's pouring rain and you're bowling along through the wet, there's satisfaction in knowing you're out there and the others aren't.",
-		Author: &Author{
-			ID: 1,
-			First: "Peter",
-			Last: "Snell",
-			Born: time.Date(1938, time.December, 17, 0, 0, 0, 0, time.UTC),
-			Description: "A New Zealand former middle-distance runner. He won three Olympic gold medals, and is the only male since 1920 to win the 800 and 1500 metres at the same Olympics, in 1964.",
-			BioLink:"https://en.wikipedia.org/wiki/Peter_Snell"}})
-	data = append(data, Quote{
-		ID: 2,
-		Quote: "I run because it's my passion, and not just a sport. Every time I walk out the door, I know why I'm going where I'm going and I'm already focused on that special place where I find my peace and solitude. Running, to me, is more than just a physical exercise... it's a consistent reward for victory!",
-		Author: &Author{
-			ID: 2,
-			First: "Sasha",
-			Last: "Azevedo",
-			Born: time.Date(1978, time.May, 20, 0, 0, 0, 0, time.UTC),
-			Description: "Modeling, acting and photography",
-			BioLink:"http://www.imdb.com/name/nm1659315/bio"}})
-	data = append(data, Quote{
-		ID: 3,
-		Quote: "If you always put limits on what you can do, physical or anything else, it'll spread over into the rest of your life. It'll spread into your work, into your morality, into your entire being. There are no limits. There are plateaus, but you must not stay there, you must go beyond them.",
-		Author: &Author{
-			ID: 3,
-			First: "Bruce",
-			Last: "Lee",
-			Born: time.Date(1940, time.November, 27, 0, 0, 0, 0, time.UTC),
-			Died: time.Date(1973, time.July, 20, 0, 0, 0, 0, time.UTC),
-			Description: "A Hong Kong and American actor, film director, martial artist, martial arts instructor, philosopher and founder of the martial art Jeet Kune Do.",
-			BioLink:"https://en.wikipedia.org/wiki/Bruce_Lee"}})
-	data = append(data, Quote{
-		ID: 4,
-		Quote: "Motivation is what gets you started. Habit is what keeps you going.",
-		Author: &Author{
-			ID: 4,
-			First: "Jim",
-			Last: "Ruyn",
-			Born: time.Date(1947, time.April, 29, 0, 0, 0, 0, time.UTC),
-			Description: "A former American politician and track and field athlete. He won a silver medal in the men's 1500 metres at the 1968 Summer Olympics, and was the first high school athlete to run a mile in under four minutes.",
-			BioLink:"https://en.wikipedia.org/wiki/Jim_Ryun"}})
-	data = append(data, Quote{
-		ID: 5,
-		Quote: "I don't think about the miles that are coming down the road, I don't think about the mile I'm on right now, I don't think about the miles I've already covered. I think about what I'm doing right now, just being lost in the moment.",
-		Author: &Author{
-			ID: 5,
-			First: "Ryan",
-			Last: "Hall",
-			Born: time.Date(1982, time.October, 14, 0, 0, 0, 0, time.UTC),
-			Description: "U.S. Olympic marathoner",
-			BioLink:"https://en.wikipedia.org/wiki/Ryan_Hall_(runner)"}})
-
-	return data
-}
-
+// respondWithError generates JSON formatted response values for error messages
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	respondWithJSON(w, code, map[string]string{"error": message})
 }
 
+// respondWithJSON generates JSON formatted response values for non error messages
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
