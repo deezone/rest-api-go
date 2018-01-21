@@ -13,6 +13,7 @@ $ go run main.go
 - [rest-api-go on herokuapp](https://rest-api-go.herokuapp.com/)
 
 ### Endpoints
+- GET `/` -> Application details generate by Kong
 - GET `/quotes` -> All quotes in the quotes document (database)
 - GET `/quote/{id}` -> Get a single quote
 - POST `/quote/{id}` -> Create a new quote
@@ -50,39 +51,19 @@ Add configuration files to:
 A combination of the environment variable and configuration file settings will be used by the application to determine
 run time settings.
 
-### Usage Example
-
-- POST `/quote/{id}` -> Create a new quote
-
-**_Example_**
-
-`POST /quote/6`
-- raw `JSON(application/json)`
-```
-{
-    "quote": "Test quote.",
-    "authour": {
-        "id": 6,
-        "first": "First",
-        "last": "Last",
-        "born": "2000-01-02T00:00:00Z",
-        "died": "2010-01-03T00:00:00Z",
-        "description": "Test description.",
-        "biolink": "http://somesite.com"
-    }
-}
-```
-
 ### References
 #### API Application in Go
 - [Building a RESTful API with Golang](https://www.codementor.io/codehakase/building-a-restful-api-with-golang-a6yivzqdo)
 - [API foundations in Go](https://leanpub.com/api-foundations)
 - [Get Programming with Go](https://www.manning.com/books/get-programming-with-go)
 - [Building and Testing a REST API in Go with Gorilla Mux and PostgreSQL](https://semaphoreci.com/community/tutorials/building-and-testing-a-rest-api-in-go-with-gorilla-mux-and-postgresql)
+- [Building and Testing a REST API in GoLang using Gorilla Mux and MySQL](https://medium.com/@kelvin_sp/building-and-testing-a-rest-api-in-golang-using-gorilla-mux-and-mysql-1f0518818ff6)
 - [How I Built an API with Mux, Go, PostgreSQL, and GORM](https://dev.to/aspittel/how-i-built-an-api-with-mux-go-postgresql-and-gorm-5ah8)
 
 #### Go Development
 - [Your First Program](https://www.golang-book.com/books/intro/2)
+- [GO by Example](https://gobyexample.com/)
+- [SyntaxDB - GO](https://syntaxdb.com/ref/go/)
 - [Dep](https://github.com/golang/dep): dependency management tool for Go
 - [Manage config in Golang to get variables from file and env variables](https://medium.com/@felipedutratine/manage-config-in-golang-to-get-variables-from-file-and-env-variables-33d876887152)
 - [Efficient String Concatenation in Go](http://herman.asia/efficient-string-concatenation-in-go)
@@ -90,6 +71,7 @@ run time settings.
 - [Godoc: documenting Go code](https://blog.golang.org/godoc-documenting-go-code)
 - [Getting Started with GORM](http://jinzhu.me/gorm/)
   - [GORM: A Simple Guide on CRUD](http://motion-express.com/blog/gorm:-a-simple-guide-on-crud)
+- [How to organize the go struct, in order to save memory.](https://medium.com/@felipedutratine/how-to-organize-the-go-struct-in-order-to-save-memory-c78afcf59ec2)
 
 #### Packages
 
@@ -109,6 +91,7 @@ run time settings.
   - [Routing (using gorilla/mux)](https://gowebexamples.com/routes-using-gorilla-mux/)
 - [github.com/gorilla/handlers](https://github.com/gorilla/handlers)
 - [github.com/tkanos/gonfig](https://github.com/tkanos/gonfig)
+  - [Manage config in Golang to get variables from file and env variables](https://medium.com/@felipedutratine/manage-config-in-golang-to-get-variables-from-file-and-env-variables-33d876887152)
 
 #### Instrumentation / Performance
 > _Instrumentation is a collective term for measuring instruments used for indicating, measuring and recording physical
@@ -140,3 +123,220 @@ top error producers, top throughput endpoints, and so on.
 
 ##### Other
 - [gobot.io](https://gobot.io/)
+
+### Usage Examples
+
+##### GET `/`
+**Response Code**: 200
+```
+{
+    "version": "0.11.1",
+    "plugins": {
+        "enabled_in_cluster": [
+            "cors"
+        ],
+        "available_on_server": {
+            "response-transformer": true,
+            "correlation-id": true,
+
+... etc
+
+}
+```
+##### GET `/quote/{id}`
+**Response Code**: 200
+```
+{
+    "ID": 2,
+    "CreatedAt": "2018-01-20T22:36:14.840646-05:00",
+    "UpdatedAt": "2018-01-20T22:36:14.840646-05:00",
+    "DeletedAt": null,
+    "quote": "Test quote2.",
+    "AuthorID": 1,
+    "author": {
+        "ID": 1,
+        "CreatedAt": "2018-01-20T22:35:58.192347-05:00",
+        "UpdatedAt": "2018-01-20T22:35:58.192347-05:00",
+        "DeletedAt": null,
+        "first": "First",
+        "last": "Last",
+        "born": "2000-01-01T19:00:00-05:00",
+        "died": "2010-01-02T19:00:00-05:00",
+        "description": "Test description.",
+        "biolink": "http://somesite.com"
+    }
+}
+```
+**Resonse Code**: 400
+```
+{
+    "error": "Quote ID: 22 not found."
+}
+```
+##### GET `/quotes/`
+**Response Code**: 200
+```
+[
+       {
+           "ID": 2,
+           "CreatedAt": "2018-01-20T22:36:14.840646-05:00",
+           "UpdatedAt": "2018-01-20T22:36:14.840646-05:00",
+           "DeletedAt": null,
+           "quote": "Test quote2.",
+           "AuthorID": 1,
+           "author": {
+               "ID": 1,
+               "CreatedAt": "2018-01-20T22:35:58.192347-05:00",
+               "UpdatedAt": "2018-01-20T22:35:58.192347-05:00",
+               "DeletedAt": null,
+               "first": "First",
+               "last": "Last",
+               "born": "2000-01-01T19:00:00-05:00",
+               "died": "2010-01-02T19:00:00-05:00",
+               "description": "Test description.",
+               "biolink": "http://somesite.com"
+           }
+       }
+   ]
+
+```
+##### GET `/author/{id}`
+**Response Code**: 200
+```
+{
+    "ID": 1,
+    "CreatedAt": "2018-01-20T22:35:58.192347-05:00",
+    "UpdatedAt": "2018-01-20T22:35:58.192347-05:00",
+    "DeletedAt": null,
+    "first": "First",
+    "last": "Last",
+    "born": "2000-01-01T19:00:00-05:00",
+    "died": "2010-01-02T19:00:00-05:00",
+    "description": "Test description.",
+    "biolink": "http://somesite.com",
+    "quotes": [
+        {
+            "ID": 1,
+            "CreatedAt": "2018-01-20T22:36:10.788467-05:00",
+            "UpdatedAt": "2018-01-20T22:36:10.788467-05:00",
+            "DeletedAt": null,
+            "quote": "Test quote1.",
+            "AuthorID": 1
+        },
+        {
+            "ID": 2,
+            "CreatedAt": "2018-01-20T22:36:14.840646-05:00",
+            "UpdatedAt": "2018-01-20T22:36:14.840646-05:00",
+            "DeletedAt": null,
+            "quote": "Test quote2.",
+            "AuthorID": 1
+        }
+    ]
+}
+```
+**Response Code**: 400
+```
+{
+    "error": "Author ID: 11 not found."
+}
+```
+##### GET `/authors/`
+**Response Code**: 200
+```
+[
+    {
+        "ID": 1,
+        "CreatedAt": "2018-01-20T22:35:58.192347-05:00",
+        "UpdatedAt": "2018-01-20T22:35:58.192347-05:00",
+        "DeletedAt": null,
+        "first": "First",
+        "last": "Last",
+        "born": "2000-01-01T19:00:00-05:00",
+        "died": "2010-01-02T19:00:00-05:00",
+        "description": "Test description.",
+        "biolink": "http://somesite.com",
+        "quotes": [
+            {
+                "ID": 2,
+                "CreatedAt": "2018-01-20T22:36:14.840646-05:00",
+                "UpdatedAt": "2018-01-20T22:36:14.840646-05:00",
+                "DeletedAt": null,
+                "quote": "Test quote2.",
+                "AuthorID": 1
+            }
+        ]
+    }
+]
+```
+
+##### POST `/quote/`
+**Response Code**: 201
+**BODY**
+```
+{
+	"quote": "Test quote3.",
+	"authorid": 1
+}
+```
+```
+{
+    "status": "Quote ID: 3 created for authorID: 1."
+}
+```
+##### POST `/author/`
+**Response Code**: 201
+**BODY**
+```
+{
+	"first": "First",
+	"last": "Last2",
+	"born": "2000-01-02T00:00:00Z",
+	"died": "2010-01-03T00:00:00Z",
+	"description": "Test description.",
+	"biolink": "http://somesite.com"
+}
+```
+```
+{
+    "status": "Author ID: 2 created."
+}
+```
+
+##### DELETE `/quote/{id}`
+**Response Code**: 200
+```
+{
+    "status": "Quote ID: 1 deleted."
+}
+```
+##### DELETE `/author/{id}`
+**Response Code**: 200
+```
+{
+    "status": "Author ID: 1 deleted."
+}
+```
+
+##### GET `/health/`
+```
+{
+    "reference": "https://golang.org/pkg/runtime/#MemStats",
+    "alloc": 3495,
+    "total-alloc": 4304,
+    "sys": 9030,
+    "numgc": 8
+}
+```
+##### GET `/ready/`
+```
+{
+    "ready": "OK"
+}
+```
+##### GET `/version/`
+```
+{
+    "version": "v0.01",
+    "release-date": "2018-01-06T18:00:00"
+}
+```

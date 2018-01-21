@@ -35,25 +35,43 @@ type Configuration struct {
 }
 
 // Quote type (more like an object), manages the details of a quote.
-type Quote struct {
-	gorm.Model
+type QuoteMin struct {
+	// gorm.Model
+	ID        uint        `gorm:"primary;key";json:"id"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 
-	Quote    string  `json:"quote"`
-	AuthorID uint    `gorm:"ForeignKey:Author.ID";json:"author-id"`
-	Author Author	 `json:"author,omitempty"`
+	Quote     string      `json:"quote"`
+	AuthorID  uint        `gorm:"index";json:"authorid"`
+}
+
+// Quote type (more like an object), manages the details of a quote.
+type Quote struct {
+	QuoteMin
+	Author 	 AuthorMin	 `json:"author,omitempty"`
+}
+
+// Author type, referenced by core items: quotes, publications, etc.
+type AuthorMin struct {
+	// gorm.Model
+	ID          uint       `gorm:"primary;key";json:"id"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   *time.Time
+
+	First       string     `json:"first,omitempty"`
+	Last        string     `json:"last,omitempty"`
+	Born        time.Time  `json:"born,omitempty"`
+	Died        time.Time  `json:"died,omitempty"`
+	Description string     `json:"description,omitempty"`
+	BioLink     string     `json:"biolink,omitempty"`
 }
 
 // Author type, referenced by core items: quotes, publications, etc.
 type Author struct {
-	gorm.Model
-
-	First       string    `json:"first,omitempty"`
-	Last        string    `json:"last,omitempty"`
-	Born        time.Time `json:"born,omitempty"`
-	Died        time.Time `json:"died,omitempty"`
-	Description string    `json:"description,omitempty"`
-	BioLink     string    `json:"biolink,omitempty"`
-	Quotes      []Quote   `json:"quotes,omitempty"`
+	AuthorMin
+	Quotes      []QuoteMin `json:"quotes,omitempty"` // One-To-Many
 }
 
 type Health struct {
@@ -74,7 +92,9 @@ type Version struct {
 }
 
 var quotes []Quote
+var quotesmin []QuoteMin
 var authors []Author
+var authorsmin []AuthorMin
 var db *gorm.DB
 var err error
 var conf Configuration
@@ -100,6 +120,7 @@ func init() {
 // GetAuthors looks up all of the authors.
 // GET /authors
 // Populates authors slice with all of the author records in the database and returns JSON formatted listing.
+// @todo: exclude author information in quotes list with each author
 func GetAuthors(w http.ResponseWriter, r *http.Request) {
 	count := 0
 	authors = []Author{}
@@ -107,6 +128,15 @@ func GetAuthors(w http.ResponseWriter, r *http.Request) {
 	if count == 0 {
 		respondWithError(w, http.StatusOK, "Author records not found.")
 		return
+	}
+
+	// Lookup author quotes
+	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than being the default response
+	// @todo: ISSUE-17 - create parameter to include deleted quotes in response
+	quotesmin := []QuoteMin{}
+	for index, author := range authors {
+		db.Raw("SELECT * FROM quotes WHERE author_id = ? AND deleted_at IS NULL", author.ID).Scan(&quotesmin)
+		authors[index].Quotes = quotesmin
 	}
 
 	respondWithJSON(w, http.StatusOK, authors)
@@ -133,18 +163,12 @@ func GetAuthor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fails
-	// db.Table("authors").Select("*").Joins("JOIN quotes ON authors.ID = quotes.author_id").Scan(&author)
-	// db.Table("author").Select("*").Joins("left join quotes on author.ID = quotes.AuthorID").Scan(&results)
-
-	// Functional query
-	// SELECT first, last, quotes.ID, quotes.quote FROM authors JOIN quotes on authors.ID = quotes.author_id WHERE authors.id = 3;
-
 	// Lookup author quotes
 	// @todo: ISSUE-16 - create parameter to trigger this lookup rather than being the default
-	quotes := []Quote{}
-	db.Where("author_id = ?", authorID).Find(&quotes)
-	author.Quotes = quotes
+	// @todo: ISSUE-17 - create parameter to include deleted quotes in response
+	quotesmin := []QuoteMin{}
+	db.Raw("SELECT * FROM quotes WHERE author_id = ? AND deleted_at IS NULL", author.ID).Scan(&quotesmin)
+	author.Quotes = quotesmin
 
 	respondWithJSON(w, http.StatusOK, author)
 }
@@ -188,6 +212,8 @@ func DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 	}
 	db.Delete(&author)
 
+	// @todo: ISSUE-18 - delete quotes attributed to deleted author
+
 	message = append(message, "Author ID: ", strconv.Itoa(authorID), " deleted.")
 	respondWithJSON(w, http.StatusOK, map[string]string{"status": strings.Join(message, "")})
 }
@@ -202,6 +228,14 @@ func GetQuotes(w http.ResponseWriter, r *http.Request) {
 	if count == 0 {
 		respondWithError(w, http.StatusOK, "Quote records not found.")
 		return
+	}
+
+	// Lookup quote author
+	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than being the default response
+	authormin := AuthorMin{}
+	for index, quote := range quotes {
+		db.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
+		quotes[index].Author = authormin
 	}
 
 	respondWithJSON(w, http.StatusOK, quotes)
@@ -229,10 +263,10 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Lookup quote author
-	// @todo: ISSUE-16 - create parameter to trigger this lookup rather than being the default
-	author := Author{}
-	db.Where("quote_id = ?", quoteID).Find(&author)
-	quote.Author = author
+	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than the default
+	authormin := AuthorMin{}
+	db.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
+	quote.Author = authormin
 
 	respondWithJSON(w, http.StatusOK, quote)
 }
@@ -249,13 +283,13 @@ func CreateQuote(w http.ResponseWriter, r *http.Request) {
 	// Validate that the author ID exists
 	var author Author
 	if (db.First(&author, quote.AuthorID).RecordNotFound()) {
-		message = append(message, "Invalid author, ID: ", strconv.Itoa(int(quote.AuthorID)), " not found.")
+		message = append(message, "Invalid author, authorid: ", strconv.Itoa(int(quote.AuthorID)), " not found.")
 		respondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
 		return
 	}
 
 	db.Create(&quote)
-	message = append(message, "Quote ID: ", strconv.Itoa(int(quote.ID)), " created for author: ",
+	message = append(message, "Quote ID: ", strconv.Itoa(int(quote.ID)), " created for authorID: ",
 		strconv.Itoa(int(quote.AuthorID)), ".")
 	respondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
 }
