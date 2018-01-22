@@ -1,5 +1,5 @@
-// The "ready" response functionality.
-// A part of the  utility / toolbox methods for the rest-api-go application.
+// The "version" response functionality for requests to the /version endpoint.
+// A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
 package toolbox
 

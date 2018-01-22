@@ -1,5 +1,5 @@
-// The "ready" response functionality.
-// A part of the  utility / toolbox methods for the rest-api-go application.
+// The "health" response functionality for requests to the /health endpoint.
+// A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
 package toolbox
 
@@ -19,7 +19,7 @@ type Health struct {
 
 // init - one time initialization logic
 func init() {
-	fmt.Println("- toolbox/ready application package initialized")
+	fmt.Println("- toolbox/health application package initialized")
 }
 
 // GetHealth looks up the health of the application.

@@ -1,5 +1,5 @@
-// The "toolbox" functionality common to many parts of the application.
-// A part of the  utility / toolbox methods for the rest-api-go application.
+// The "config" functionality common to many parts of the application.
+// A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
 package toolbox
 
@@ -27,8 +27,8 @@ type Configuration struct {
 
 var Conf Configuration
 
-// init manages initalization logic
-// Uses envionment variable and configuration files.
+// init - one time initialization logic
+// Uses environment variables and configuration files.
 // Gathers application run time settings
 func init() {
 	fmt.Println("- toolbox/config application package initialized")
@@ -52,4 +52,3 @@ func init() {
 	port := []string{}
 	Conf.PortStr = append(port, ":", strconv.Itoa(Conf.Port))
 }
-

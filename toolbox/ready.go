@@ -1,5 +1,5 @@
-// The "ready" response functionality.
-// A part of the  utility / toolbox methods for the rest-api-go application.
+// The "ready" response functionality for requests to the /ready endpoint.
+// A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
 package toolbox
 
@@ -9,7 +9,8 @@ import (
 )
 
 type Ready struct {
-	Ready string `json:"ready,omitempty"`
+	DbReady  string `json:"dbready,omitempty"`
+	AppReady string `json:"appready,omitempty"`
 }
 
 // init - one time initialization logic
@@ -22,6 +23,18 @@ func init() {
 // Returns the application state to determine if the application is ready to process requests.
 func GetReady(w http.ResponseWriter, r *http.Request) {
 	var data Ready
-	data.Ready = "OK"
+
+	// Database state
+	// Send a ping to make sure the database connection is alive.
+	err = Db.DB().Ping()
+	if err == nil {
+		data.DbReady = "OK"
+	} else {
+		data.DbReady = "Error"
+	}
+
+	// Application state
+	data.AppReady = "OK"
+
 	RespondWithJSON(w, http.StatusOK, data)
 }

@@ -1,12 +1,16 @@
 // The "db" (database) functionality common to many parts of the application.
-// A part of the  utility / toolbox methods for the rest-api-go application.
+// A part of the toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
 package toolbox
 
 import (
 	"fmt"
+	"github.com/soulcycle/milestones/db"
 	"time"
+
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/lib/pq"
 )
 
 // Quote type (more like an object), manages the details of a quote.
@@ -56,9 +60,7 @@ var Authorsmin []AuthorMin
 var Db *gorm.DB
 var err error
 
-//
-//
-//
+// init - one time initialization logic
 func init() {
 	fmt.Println("- toolbox/db application package initialized")
 
@@ -75,7 +77,16 @@ func init() {
 		panic("failed to connect database")
 	}
 
-	defer Db.Close()
+	// go-sql-driver/mysql - Best practice
+	// https://github.com/go-sql-driver/mysql/issues/461#issuecomment-227008369
+	// Db.DB().SetConnMaxLifetime(time.Minute*5);
+	// Db.DB().SetMaxIdleConns(0);
+	// Db.DB().SetMaxOpenConns(5);
+
+	// https://github.com/jinzhu/gorm/issues/1427
+	// Commented out as having this within a package seems to result in the connection closing,
+	// moved to main.go -> main()
+	// defer Db.Close()
 
 	Db.AutoMigrate(&Quote{})
 	Db.AutoMigrate(&Author{})

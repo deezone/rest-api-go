@@ -1,17 +1,25 @@
 // The application route definations.
 // A part of the  routes/routes methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
-package toolbox
+package routes
 
 import (
 	"fmt"
-	"github.com/deezone/rest-api-go/toolbox"
+	"net/http"
+	"os"
+	"strings"
+	"log"
+
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
+	"github.com/deezone/rest-api-go/authors"
+	"github.com/deezone/rest-api-go/quotes"
+	"github.com/deezone/rest-api-go/toolbox"
 )
 
-//
-//
-//
+// init - one time initialization logic
+// Application route definitions
 func init() {
 	fmt.Println("- routes/routes application package initialized")
 
@@ -28,36 +36,36 @@ func init() {
 	subRouterVersion := router.PathPrefix("/version").Subrouter()
 
 	// GET /authors
-	subRouterAuthors.HandleFunc("", GetAuthors).Methods("GET")
-	subRouterAuthors.HandleFunc("/", GetAuthors).Methods("GET")
+	subRouterAuthors.HandleFunc("", authors.GetAuthors).Methods("GET")
+	subRouterAuthors.HandleFunc("/", authors.GetAuthors).Methods("GET")
 
 	// GET /author
-	subRouterAuthor.HandleFunc("/{id}",  GetAuthor).Methods("GET")
-	subRouterAuthor.HandleFunc("/{id}/", GetAuthor).Methods("GET")
+	subRouterAuthor.HandleFunc("/{id}",  authors.GetAuthor).Methods("GET")
+	subRouterAuthor.HandleFunc("/{id}/", authors.GetAuthor).Methods("GET")
 
 	// POST /author
-	subRouterAuthor.HandleFunc("", CreateAuthor).Methods("POST")
-	subRouterAuthor.HandleFunc("/", CreateAuthor).Methods("POST")
+	subRouterAuthor.HandleFunc("", authors.CreateAuthor).Methods("POST")
+	subRouterAuthor.HandleFunc("/", authors.CreateAuthor).Methods("POST")
 
 	// DELETE /author
-	subRouterAuthor.HandleFunc("/{id}",  DeleteAuthor).Methods("DELETE")
-	subRouterAuthor.HandleFunc("/{id}/", DeleteAuthor).Methods("DELETE")
+	subRouterAuthor.HandleFunc("/{id}", authors.DeleteAuthor).Methods("DELETE")
+	subRouterAuthor.HandleFunc("/{id}/", authors.DeleteAuthor).Methods("DELETE")
 
 	// GET /quotes
-	subRouterQuotes.HandleFunc("", GetQuotes).Methods("GET")
-	subRouterQuotes.HandleFunc("/", GetQuotes).Methods("GET")
+	subRouterQuotes.HandleFunc("", quotes.GetQuotes).Methods("GET")
+	subRouterQuotes.HandleFunc("/", quotes.GetQuotes).Methods("GET")
 
 	// GET /quote
-	subRouterQuote.HandleFunc("/{id}",  GetQuote).Methods("GET")
-	subRouterQuote.HandleFunc("/{id}/", GetQuote).Methods("GET")
+	subRouterQuote.HandleFunc("/{id}",  quotes.GetQuote).Methods("GET")
+	subRouterQuote.HandleFunc("/{id}/", quotes.GetQuote).Methods("GET")
 
 	// POST /quote
-	subRouterQuote.HandleFunc("", CreateQuote).Methods("POST")
-	subRouterQuote.HandleFunc("/", CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("", quotes.CreateQuote).Methods("POST")
+	subRouterQuote.HandleFunc("/", quotes.CreateQuote).Methods("POST")
 
 	// DELETE /quote
-	subRouterQuote.HandleFunc("/{id}",  DeleteQuote).Methods("DELETE")
-	subRouterQuote.HandleFunc("/{id}/", DeleteQuote).Methods("DELETE")
+	subRouterQuote.HandleFunc("/{id}",  quotes.DeleteQuote).Methods("DELETE")
+	subRouterQuote.HandleFunc("/{id}/", quotes.DeleteQuote).Methods("DELETE")
 
 	// GET /health
 	subRouterHealth.HandleFunc("", toolbox.GetHealth).Methods("GET")
@@ -70,4 +78,10 @@ func init() {
 	// GET /version
 	subRouterVersion.HandleFunc("", toolbox.GetVersion).Methods("GET")
 	subRouterVersion.HandleFunc("/", toolbox.GetVersion).Methods("GET")
+
+	fmt.Printf("Starting server on port %s\n", strings.Join(toolbox.Conf.PortStr, ""))
+	log.Fatal(http.ListenAndServe(strings.Join(toolbox.Conf.PortStr, ""),
+		handlers.LoggingHandler(os.Stdout, handlers.CORS(
+			handlers.AllowedMethods([]string{"GET", "POST", "DELETE"}),
+			handlers.AllowedOrigins([]string{"*"}))(router))))
 }

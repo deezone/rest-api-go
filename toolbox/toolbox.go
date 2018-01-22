@@ -1,5 +1,5 @@
 // The "toolbox" functionality common to many parts of the application.
-// A part of the  utility / toolbox methods for the rest-api-go application.
+// A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
 package toolbox
 
@@ -9,9 +9,7 @@ import (
 	"net/http"
 )
 
-//
-//
-//
+// init - one time initialization logic
 func init() {
 	fmt.Println("- toolbox/toolbox application package initialized")
 }
