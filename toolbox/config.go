@@ -1,0 +1,54 @@
+// The "config" functionality common to many parts of the application.
+// A part of the  toolbox (utility) methods for the rest-api-go application.
+// Governed by the license that can be found in the LICENSE file
+package toolbox
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/tkanos/gonfig"
+)
+
+// Configuration type, settings common to application
+type Configuration struct {
+	Port        int
+	PortStr[]   string
+	Version     string
+	ReleaseDate string
+	Environment string
+	DbHost      string
+	DbUser      string
+	DbName      string
+	DbPassword  string
+}
+
+var Conf Configuration
+
+// init - one time initialization logic
+// Uses environment variables and configuration files.
+// Gathers application run time settings
+func init() {
+	fmt.Println("- toolbox/config application package initialized")
+
+	Conf.Environment = os.Getenv("REST_API_ENV")
+	if (Conf.Environment == "") {
+		fmt.Println("REST_API_ENV not defined, using default development environment settings.")
+		Conf.Environment = "development"
+	}
+	env := []string{}
+	env = append(env, "config/config.", Conf.Environment, ".json")
+	Err := gonfig.GetConf(strings.Join(env, ""), &Conf)
+	if (Err != nil) {
+		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
+	}
+
+	if (Conf.Port == 0) {
+		fmt.Println("Application port setting not found")
+		os.Exit(1)
+	}
+	port := []string{}
+	Conf.PortStr = append(port, ":", strconv.Itoa(Conf.Port))
+}
