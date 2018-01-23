@@ -13,11 +13,37 @@ $ go run main.go
 - [rest-api-go on herokuapp](https://rest-api-go.herokuapp.com/)
 
 ### Endpoints
-- GET `/` -> Application details generate by Kong
-- GET `/quotes` -> All quotes in the quotes document (database)
-- GET `/quote/{id}` -> Get a single quote
-- POST `/quote/{id}` -> Create a new quote
-- DELETE `/quote/{id}` -> Delete a quote
+- `GET /` -> Application details generate by Kong
+
+- `GET /quotes`
+- `GET /quote/{id}`
+- `POST /quote`
+```
+{
+	"quote": "Test quote.",
+	"authorid": 1
+}
+```
+- `DELETE /quote/{id}`
+
+- `GET /quthors`
+- `GET /author/{id}`
+- `POST /author`
+```
+{
+	"first": "First",
+	"last": "Last",
+	"born": "2000-01-02T00:00:00Z",
+	"died": "2010-01-03T00:00:00Z",
+	"description": "Test description.",
+	"biolink": "http://somesite.com"
+}
+```
+- `DELETE /quote{id}`
+
+- `GET /status`
+- `GET /health`
+- `GET /verion`
 
 ### Documentation
 - [GoDoc Documentation](https://godoc.org/github.com/DeeZone/rest-api-go)
@@ -59,6 +85,8 @@ run time settings.
 - [Building and Testing a REST API in Go with Gorilla Mux and PostgreSQL](https://semaphoreci.com/community/tutorials/building-and-testing-a-rest-api-in-go-with-gorilla-mux-and-postgresql)
 - [Building and Testing a REST API in GoLang using Gorilla Mux and MySQL](https://medium.com/@kelvin_sp/building-and-testing-a-rest-api-in-golang-using-gorilla-mux-and-mysql-1f0518818ff6)
 - [How I Built an API with Mux, Go, PostgreSQL, and GORM](https://dev.to/aspittel/how-i-built-an-api-with-mux-go-postgresql-and-gorm-5ah8)
+- [Authenticate A Golang API With JSON Web Tokens](https://www.thepolyglotdeveloper.com/2017/03/authenticate-a-golang-api-with-json-web-tokens/)
+- [Building a RESTful API in go](https://www.netlify.com/blog/2016/10/20/building-a-restful-api-in-go/)
 
 #### Go Development
 - [Your First Program](https://www.golang-book.com/books/intro/2)
@@ -72,6 +100,11 @@ run time settings.
 - [Getting Started with GORM](http://jinzhu.me/gorm/)
   - [GORM: A Simple Guide on CRUD](http://motion-express.com/blog/gorm:-a-simple-guide-on-crud)
 - [How to organize the go struct, in order to save memory.](https://medium.com/@felipedutratine/how-to-organize-the-go-struct-in-order-to-save-memory-c78afcf59ec2)
+
+#### Dockerize
+- [How to Dockerize your Go (golang) App](https://medium.com/travis-on-docker/how-to-dockerize-your-go-golang-app-542af15c27a2)
+- [Building Minimal Docker Containers for Go Applications](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/)
+- [Micro Docker Images for Go Applications](https://blog.kloia.com/micro-docker-images-for-go-applications-8a8701130c01)
 
 #### Packages
 
@@ -120,6 +153,8 @@ top error producers, top throughput endpoints, and so on.
 - [Build A Full Stack Movie Database With Golang, Angular, And NoSQL](https://www.thepolyglotdeveloper.com/2017/02/build-a-full-stack-movie-database-with-golang-angular-and-nosql/)
 - [Golang and Angular 2, Why not?](https://medium.com/@thanhngvpt/golang-and-angular-2-why-not-38a398b182c)
 - [Create A Real Time Chat App With Golang, Angular 2, And Websockets](https://www.thepolyglotdeveloper.com/2016/12/create-real-time-chat-app-golang-angular-2-websockets/)
+- [Testing Angular 2 and Continuous Integration with Jest](https://semaphoreci.com/community/tutorials/testing-angular-2-and-continuous-integration-with-jest)
+- [Authenticate With JWT In A NativeScript Angular Mobile Application](https://www.thepolyglotdeveloper.com/2017/03/authenticate-jwt-nativescript-angular-mobile-application/)
 
 ##### Other
 - [gobot.io](https://gobot.io/)
