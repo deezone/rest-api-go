@@ -33,7 +33,11 @@
 - [Building a RESTful API in go](https://www.netlify.com/blog/2016/10/20/building-a-restful-api-in-go/)
 
 #### Go Development
+- [GOPATH EXPLAINED](https://flaviocopes.com/go-gopath/)
 - [Your First Program](https://www.golang-book.com/books/intro/2)
+- [An Introduction to Programming in Go](https://www.golang-book.com/books/intro)
+- [How to Write Go Code](https://golang.org/doc/code.html)
+- [FILESYSTEM STRUCTURE OF A GO PROJECT](https://flaviocopes.com/go-filesystem-structure/)
 - [GO by Example](https://gobyexample.com/)
 - [SyntaxDB - GO](https://syntaxdb.com/ref/go/)
 - [Dep](https://github.com/golang/dep): dependency management tool for Go
@@ -71,6 +75,7 @@ top error producers, top throughput endpoints, and so on.
 - [Getting Started on Heroku with Go](https://devcenter.heroku.com/articles/getting-started-with-go#introduction)
 
 ##### Postgres
+- [Installing Postgres via Brew](https://gist.github.com/sgnl/609557ebacd3378f3b72)
 - [Postgres Documentation](https://www.postgresql.org/docs/)
 
 ##### Angular

@@ -1,7 +1,7 @@
 // The "quotes" response functionality for requests to the /quotes endpoint.
 // A part of the  quotes methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
-package quotes
+package application
 
 import (
 	"fmt"
@@ -12,16 +12,16 @@ import (
 
 // init - one time initialization logic
 func init() {
-	fmt.Println("- quotes/quotes application package initialized")
+	fmt.Println("- application/quotes rest-api-go package initialized")
 }
 
 // GetQuotes looks up all of the quotes.
 // GET /quotes
 // Returns all of the quotes in JSON format.
-func GetQuotes(w http.ResponseWriter, r *http.Request) {
+func (a *App) GetQuotes(w http.ResponseWriter, r *http.Request) {
 	count := 0
-	quotes := []toolbox.Quote{}
-	toolbox.Db.Find(&quotes).Count(&count)
+	quotes := []Quote{}
+	a.DB.Find(&quotes).Count(&count)
 	if count == 0 {
 		toolbox.RespondWithError(w, http.StatusOK, "Quote records not found.")
 		return
@@ -29,9 +29,9 @@ func GetQuotes(w http.ResponseWriter, r *http.Request) {
 
 	// Lookup quote author
 	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than being the default response
-	authormin := toolbox.AuthorMin{}
+	authormin := AuthorMin{}
 	for index, quote := range quotes {
-		toolbox.Db.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
+		a.DB.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
 		quotes[index].Author = authormin
 	}
 

@@ -1,12 +1,14 @@
 // The "health" response functionality for requests to the /health endpoint.
 // A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
-package toolbox
+package application
 
 import (
 	"fmt"
 	"net/http"
 	"runtime"
+
+	"github.com/deezone/rest-api-go/toolbox"
 )
 
 type Health struct {
@@ -37,5 +39,5 @@ func GetHealth(w http.ResponseWriter, r *http.Request) {
 	data.Sys = m.Sys / 1024
 	data.NumGC = m.NumGC
 
-	RespondWithJSON(w, http.StatusOK, data)
+	toolbox.RespondWithJSON(w, http.StatusOK, data)
 }

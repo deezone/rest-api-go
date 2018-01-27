@@ -1,13 +1,15 @@
 // The "version" response functionality for requests to the /version endpoint.
 // A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
-package toolbox
+package application
 
 import (
 	"fmt"
 	"github.com/tkanos/gonfig"
 	"net/http"
 	"strings"
+
+	"github.com/deezone/rest-api-go/toolbox"
 )
 
 type Version struct {
@@ -25,16 +27,16 @@ func init() {
 // Returns the current version of the application.
 func GetVersion(w http.ResponseWriter, r *http.Request) {
 	var data Version
-	configuration := Configuration{}
+	configuration := toolbox.Configuration{}
 
 	env := []string{}
 	env = append(env, "config/config.", configuration.Environment, ".json")
 	err := gonfig.GetConf(strings.Join(env, ""), &configuration)
 	if (err != nil) {
-		RespondWithError(w, http.StatusBadRequest, "Application Version details unknown!")
+		toolbox.RespondWithError(w, http.StatusBadRequest, "Application Version details unknown!")
 	}
 
 	data.Version = configuration.Version
 	data.ReleaseDate = configuration.ReleaseDate
-	RespondWithJSON(w, http.StatusOK, data)
+	toolbox.RespondWithJSON(w, http.StatusOK, data)
 }

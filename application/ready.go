@@ -1,11 +1,13 @@
 // The "ready" response functionality for requests to the /ready endpoint.
 // A part of the  toolbox (utility) methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
-package toolbox
+package application
 
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/deezone/rest-api-go/toolbox"
 )
 
 type Ready struct {
@@ -21,12 +23,12 @@ func init() {
 // GetReady determines if the application is ready to process requests.
 // GET /ready
 // Returns the application state to determine if the application is ready to process requests.
-func GetReady(w http.ResponseWriter, r *http.Request) {
+func (a *App) GetReady(w http.ResponseWriter, r *http.Request) {
 	var data Ready
 
 	// Database state
 	// Send a ping to make sure the database connection is alive.
-	err = Db.DB().Ping()
+	err = a.DB.DB().Ping()
 	if err == nil {
 		data.DbReady = "OK"
 	} else {
@@ -36,5 +38,5 @@ func GetReady(w http.ResponseWriter, r *http.Request) {
 	// Application state
 	data.AppReady = "OK"
 
-	RespondWithJSON(w, http.StatusOK, data)
+	toolbox.RespondWithJSON(w, http.StatusOK, data)
 }

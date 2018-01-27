@@ -6,7 +6,6 @@ package toolbox
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/tkanos/gonfig"
@@ -15,7 +14,6 @@ import (
 // Configuration type, settings common to application
 type Configuration struct {
 	Port        int
-	PortStr[]   string
 	Version     string
 	ReleaseDate string
 	Environment string
@@ -28,10 +26,10 @@ type Configuration struct {
 var Conf Configuration
 
 // init - one time initialization logic
-// Uses environment variables and configuration files.
-// Gathers application run time settings
+// Uses environment variables and configuration files
+// Gathers application run time settings to populate application Conf
 func init() {
-	fmt.Println("- toolbox/config application package initialized")
+	fmt.Println("- toolbox/config rest-api-go package initialized")
 
 	Conf.Environment = os.Getenv("REST_API_ENV")
 	if (Conf.Environment == "") {
@@ -45,10 +43,10 @@ func init() {
 		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
 	}
 
+	fmt.Sprintf("Environment %s loaded - Port: %s, Environment: %s, dbName: %s", strings.Join(env, ""), Conf.Port, Conf.Environment, Conf.DbName)
+
 	if (Conf.Port == 0) {
 		fmt.Println("Application port setting not found")
 		os.Exit(1)
 	}
-	port := []string{}
-	Conf.PortStr = append(port, ":", strconv.Itoa(Conf.Port))
 }
