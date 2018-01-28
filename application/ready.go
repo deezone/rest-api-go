@@ -11,8 +11,8 @@ import (
 )
 
 type Ready struct {
-	DbReady  string `json:"dbready,omitempty"`
-	AppReady string `json:"appready,omitempty"`
+	DbReady  string `json:"dbReady,omitempty"`
+	AppReady string `json:"appReady,omitempty"`
 }
 
 // init - one time initialization logic

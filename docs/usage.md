@@ -159,6 +159,12 @@
     "status": "Quote ID: 3 created for authorID: 1."
 }
 ```
+**Response Code**: 400
+```
+{
+    "error": "Invalid author, authorid: 11 not found."
+}
+```
 ##### POST `/author/`
 **Response Code**: 201
 **BODY**
@@ -185,11 +191,23 @@
     "status": "Quote ID: 1 deleted."
 }
 ```
+**Response Code**: 400
+```
+{
+    "error": "Quote ID: 11 not found."
+}
+```
 ##### DELETE `/author/{id}`
 **Response Code**: 200
 ```
 {
     "status": "Author ID: 1 deleted."
+}
+```
+**Response Code**: 400
+```
+{
+    "error": "Author ID: 22 not found."
 }
 ```
 

@@ -96,7 +96,7 @@ func (a *App) Initialize(dbUser, dbPassword, dbName, dbHost string) {
 	// https://github.com/jinzhu/gorm/issues/1427
 	// Commented out as having this within a package seems to result in the connection closing,
 	// moved to main.go -> main()
-	defer a.DB.Close()
+	// defer a.DB.Close()
 
 	a.DB.AutoMigrate(&Quote{})
 	a.DB.AutoMigrate(&Author{})

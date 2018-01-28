@@ -35,8 +35,10 @@ func (a *App) GetAuthors(w http.ResponseWriter, r *http.Request) {
 	// @todo: ISSUE-17 - create parameter to include deleted quotes in response
 	quotesmin := []QuoteMin{}
 	for index, author := range authors {
-		a.DB.Raw("SELECT * FROM quotes WHERE author_id = ? AND deleted_at IS NULL", author.ID).Scan(&quotesmin)
-		authors[index].Quotes = quotesmin
+		a.DB.Raw("SELECT * FROM quotes WHERE author_id = ? AND deleted_at IS NULL", author.ID).Scan(&quotesmin).Count(&count)
+		if count > 0 {
+			authors[index].Quotes = quotesmin
+		}
 	}
 
 	toolbox.RespondWithJSON(w, http.StatusOK, authors)

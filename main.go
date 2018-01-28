@@ -23,4 +23,9 @@ func main() {
 		toolbox.Conf.DbHost)
 
 	a.Run(toolbox.Conf.Port)
+
+	// https://github.com/jinzhu/gorm/issues/1427
+	// Commented out as having this within the application/application.go package seems to result in the connection
+	// closing
+	defer a.DB.Close()
 }

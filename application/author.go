@@ -60,7 +60,7 @@ func (a *App) CreateAuthor(w http.ResponseWriter, r *http.Request) {
 
 	// Create new record
 	if err := a.DB.Create(&author).Error; err != nil {
-		toolbox.RespondWithError(w, http.StatusBadRequest, "Error creatng author record.")
+		toolbox.RespondWithError(w, http.StatusBadRequest, "Error creating author record.")
 		return
 	}
 
