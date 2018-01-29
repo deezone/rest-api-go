@@ -17,7 +17,7 @@ type Ready struct {
 
 // init - one time initialization logic
 func init() {
-	fmt.Println("- toolbox/ready application package initialized")
+	fmt.Println("- application/ready rest-api-go package initialized")
 }
 
 // GetReady determines if the application is ready to process requests.

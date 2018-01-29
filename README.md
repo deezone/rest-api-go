@@ -92,3 +92,38 @@ $ go run main.go
 
 ### Documentation
 - [GoDoc Documentation](https://godoc.org/github.com/DeeZone/rest-api-go)
+
+### Test Coverage
+```
+$ go test -v
+- toolbox/config rest-api-go package initialized
+- toolbox/toolbox rest-api-go package initialized
+- application/author rest-api-go package initialized
+- application/authors rest-api-go package initialized
+- application/health rest-api-go package initialized
+- application/quote rest-api-go package initialized
+- application/quotes rest-api-go package initialized
+- application/ready rest-api-go package initialized
+- application/version rest-api-go package initialized
+Starting rest-api-go application in test mode...
+Starting DB connection...
+- application/application rest-api-go initializeRoutes() initialized
+=== RUN   TestEmptyQuotesTable
+--- PASS: TestEmptyQuotesTable (0.00s)
+=== RUN   TestEmptyAuthorsTable
+--- PASS: TestEmptyAuthorsTable (0.00s)
+=== RUN   TestGetNonExistentQuote
+--- PASS: TestGetNonExistentQuote (0.00s)
+=== RUN   TestGetNonExistentAuthor
+--- PASS: TestGetNonExistentAuthor (0.00s)
+=== RUN   TestCreateAuthor
+--- PASS: TestCreateAuthor (0.00s)
+=== RUN   TestCreateQuoteWithInvalidAuthor
+--- PASS: TestCreateQuoteWithInvalidAuthor (0.00s)
+=== RUN   TestGetExistingAuthor
+--- PASS: TestGetExistingAuthor (0.00s)
+=== RUN   TestCreateQuoteWithValidAuthor
+--- PASS: TestCreateQuoteWithValidAuthor (0.00s)
+PASS
+ok  	github.com/deezone/rest-api-go	0.090s
+```

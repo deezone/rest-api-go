@@ -5,7 +5,16 @@
 #### Environment Variables
 - [Linux: Set Environment Variable](https://www.cyberciti.biz/faq/set-environment-variable-linux/)
 ```
-export REST_API_ENV=development OR production
+export REST_API_ENV=production
+
+OR
+
+export REST_API_ENV=development
+
+OR
+
+export REST_API_ENV=test
+
 ```
 
 #### Configuration files

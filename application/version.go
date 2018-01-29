@@ -19,7 +19,7 @@ type Version struct {
 
 // init - one time initialization logic
 func init() {
-	fmt.Println("- toolbox/version application package initialized")
+	fmt.Println("- application/version rest-api-go package initialized")
 }
 
 // GetVersion looks up the current version of the application.

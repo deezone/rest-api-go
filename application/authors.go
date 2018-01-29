@@ -26,7 +26,7 @@ func (a *App) GetAuthors(w http.ResponseWriter, r *http.Request) {
 	authors = []Author{}
 	a.DB.Find(&authors).Count(&count)
 	if count == 0 {
-		toolbox.RespondWithError(w, http.StatusOK, "Author records not found.")
+		toolbox.RespondWithError(w, http.StatusNotFound, "Author records not found.")
 		return
 	}
 

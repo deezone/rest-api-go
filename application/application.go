@@ -4,8 +4,8 @@
 package application
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -120,7 +120,7 @@ func (a *App) Run(dbPort int) {
 // init - one time initialization logic
 // Application route definitions
 func (a *App) initializeRoutes() {
-	fmt.Println("- routes/routes rest-api-go package initialized")
+	fmt.Println("- application/application rest-api-go initializeRoutes() initialized")
 
 	subRouterAuthors := a.Router.PathPrefix("/authors").Subrouter()
 	subRouterAuthor := a.Router.PathPrefix("/author").Subrouter()

@@ -6,12 +6,13 @@ package application
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/deezone/rest-api-go/toolbox"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
+
+	"github.com/deezone/rest-api-go/toolbox"
 )
 
 // init - one time initialization logic
@@ -36,7 +37,7 @@ func (a *App) GetAuthor(w http.ResponseWriter, r *http.Request) {
 	if (a.DB.First(&author, authorID).RecordNotFound()) {
 		message := []string{}
 		message = append(message, "Author ID: ", strconv.Itoa(int(authorID)), " not found.")
-		toolbox.RespondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		toolbox.RespondWithError(w, http.StatusNotFound, strings.Join(message, ""))
 		return
 	}
 
@@ -54,8 +55,8 @@ func (a *App) GetAuthor(w http.ResponseWriter, r *http.Request) {
 // POST /author
 // Returns newly created author ID.
 func (a *App) CreateAuthor(w http.ResponseWriter, r *http.Request) {
-
 	var author Author
+
 	_ = json.NewDecoder(r.Body).Decode(&author)
 
 	// Create new record
@@ -64,9 +65,15 @@ func (a *App) CreateAuthor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message := []string{}
-	message = append(message, "Author ID: ", strconv.Itoa(int(author.ID)), " created.")
-	toolbox.RespondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
+	// @todo: check if author already exists by "first", "last", "born", "died" values
+	// https://code.i-harness.com/en/q/3a6146
+	// respond with "status" : "already exists", "id": existing ID, http.Conflict: 409
+	// or StatusUnprocessableEntity: 422
+
+	m := make(map[string]string)
+	m["status"] = "created"
+	m["id"] = strconv.Itoa(int(author.ID))
+	toolbox.RespondWithJSON(w, http.StatusCreated, m)
 }
 
 // Delete Author deletes an author by author ID.

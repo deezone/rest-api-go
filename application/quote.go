@@ -37,7 +37,7 @@ func (a *App) GetQuote(w http.ResponseWriter, r *http.Request) {
 	if (a.DB.First(&quote, quoteID).RecordNotFound()) {
 		message := []string{}
 		message = append(message, "Quote ID: ", strconv.Itoa(int(quoteID)), " not found.")
-		toolbox.RespondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		toolbox.RespondWithError(w, http.StatusNotFound, strings.Join(message, ""))
 		return
 	}
 
@@ -67,10 +67,18 @@ func (a *App) CreateQuote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// @todo: check if author already exists by "first", "last", "born", "died" values
+	// https://code.i-harness.com/en/q/3a6146
+	// respond with "status" : "already exists", "id": existing ID, http.Conflict: 409
+	// or StatusUnprocessableEntity: 422
+
 	a.DB.Create(&quote)
-	message = append(message, "Quote ID: ", strconv.Itoa(int(quote.ID)), " created for authorID: ",
-		strconv.Itoa(int(quote.AuthorID)), ".")
-	toolbox.RespondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
+
+	m := make(map[string]string)
+	m["status"] = "created"
+	m["id"] = strconv.Itoa(int(quote.ID))
+	m["authorid"] = strconv.Itoa(int(quote.AuthorID))
+	toolbox.RespondWithJSON(w, http.StatusCreated, m)
 }
 
 // DeleteQuote deletes a quote by quote ID.

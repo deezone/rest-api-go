@@ -21,7 +21,7 @@ type Health struct {
 
 // init - one time initialization logic
 func init() {
-	fmt.Println("- toolbox/health application package initialized")
+	fmt.Println("- application/health rest-api-go package initialized")
 }
 
 // GetHealth looks up the health of the application.

@@ -23,7 +23,7 @@ func (a *App) GetQuotes(w http.ResponseWriter, r *http.Request) {
 	quotes := []Quote{}
 	a.DB.Find(&quotes).Count(&count)
 	if count == 0 {
-		toolbox.RespondWithError(w, http.StatusOK, "Quote records not found.")
+		toolbox.RespondWithError(w, http.StatusNotFound, "Quote records not found.")
 		return
 	}
 

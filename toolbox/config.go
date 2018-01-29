@@ -43,8 +43,6 @@ func init() {
 		fmt.Sprintf("Environment %s file not found.", strings.Join(env, ""))
 	}
 
-	fmt.Sprintf("Environment %s loaded - Port: %s, Environment: %s, dbName: %s", strings.Join(env, ""), Conf.Port, Conf.Environment, Conf.DbName)
-
 	if (Conf.Port == 0) {
 		fmt.Println("Application port setting not found")
 		os.Exit(1)
