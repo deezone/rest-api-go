@@ -11,7 +11,7 @@ import (
 
 // init - one time initialization logic
 func init() {
-	fmt.Println("- toolbox/toolbox application package initialized")
+	fmt.Println("- toolbox/toolbox rest-api-go package initialized")
 }
 
 // respondWithError generates JSON formatted response values for error messages

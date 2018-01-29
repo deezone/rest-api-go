@@ -1,7 +1,7 @@
 // The "quote" GET, POST and DALETE response functionality for requests to the /quote endpoint.
 // A part of the  quotes methods for the rest-api-go application.
 // Governed by the license that can be found in the LICENSE file
-package quotes
+package application
 
 import (
 	"encoding/json"
@@ -17,14 +17,14 @@ import (
 
 // init - one time initialization logic
 func init() {
-	fmt.Println("- quotes/quote application package initialized")
+	fmt.Println("- application/quote rest-api-go package initialized")
 }
 
 // GetQuote looks up a specific quote by ID.
 // GET /quote/{id}
 // Returns a quote in the JSON format provided the target ID is valid.
-func GetQuote(w http.ResponseWriter, r *http.Request) {
-	var quote toolbox.Quote
+func (a *App) GetQuote(w http.ResponseWriter, r *http.Request) {
+	var quote Quote
 
 	params := mux.Vars(r)
 	quoteID, err := strconv.Atoi(params["id"])
@@ -34,17 +34,17 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check that quote ID is valid
-	if (toolbox.Db.First(&quote, quoteID).RecordNotFound()) {
+	if (a.DB.First(&quote, quoteID).RecordNotFound()) {
 		message := []string{}
 		message = append(message, "Quote ID: ", strconv.Itoa(int(quoteID)), " not found.")
-		toolbox.RespondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
+		toolbox.RespondWithError(w, http.StatusNotFound, strings.Join(message, ""))
 		return
 	}
 
 	// Lookup quote author
 	// @todo: ISSUE-16 - create parameter to trigger author lookup rather than the default
-	authormin := toolbox.AuthorMin{}
-	toolbox.Db.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
+	authormin := AuthorMin{}
+	a.DB.Raw("SELECT * FROM authors WHERE id = ? AND deleted_at IS NULL", quote.AuthorID).Scan(&authormin)
 	quote.Author = authormin
 
 	toolbox.RespondWithJSON(w, http.StatusOK, quote)
@@ -53,30 +53,38 @@ func GetQuote(w http.ResponseWriter, r *http.Request) {
 // CreateQuote creates a new quote. Validates that the author ID exists.
 // POST /quote
 // Returns the ID of new quote as a part of the "status" response message.
-func CreateQuote(w http.ResponseWriter, r *http.Request) {
+func (a *App) CreateQuote(w http.ResponseWriter, r *http.Request) {
 
 	message := []string{}
-	var quote toolbox.Quote
+	var quote Quote
 	_ = json.NewDecoder(r.Body).Decode(&quote)
 
 	// Validate that the author ID exists
-	var author toolbox.Author
-	if (toolbox.Db.First(&author, quote.AuthorID).RecordNotFound()) {
+	var author Author
+	if (a.DB.First(&author, quote.AuthorID).RecordNotFound()) {
 		message = append(message, "Invalid author, authorid: ", strconv.Itoa(int(quote.AuthorID)), " not found.")
 		toolbox.RespondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
 		return
 	}
 
-	toolbox.Db.Create(&quote)
-	message = append(message, "Quote ID: ", strconv.Itoa(int(quote.ID)), " created for authorID: ",
-		strconv.Itoa(int(quote.AuthorID)), ".")
-	toolbox.RespondWithJSON(w, http.StatusCreated, map[string]string{"status": strings.Join(message, "")})
+	// @todo: check if author already exists by "first", "last", "born", "died" values
+	// https://code.i-harness.com/en/q/3a6146
+	// respond with "status" : "already exists", "id": existing ID, http.Conflict: 409
+	// or StatusUnprocessableEntity: 422
+
+	a.DB.Create(&quote)
+
+	m := make(map[string]string)
+	m["status"] = "created"
+	m["id"] = strconv.Itoa(int(quote.ID))
+	m["authorid"] = strconv.Itoa(int(quote.AuthorID))
+	toolbox.RespondWithJSON(w, http.StatusCreated, m)
 }
 
 // DeleteQuote deletes a quote by quote ID.
 // DELETE /quote/{id}
 // Returns.
-func DeleteQuote(w http.ResponseWriter, r *http.Request) {
+func (a *App) DeleteQuote(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	quoteID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
@@ -85,13 +93,13 @@ func DeleteQuote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	message := []string{}
-	var quote toolbox.Quote
-	if (toolbox.Db.First(&quote, quoteID).RecordNotFound()) {
+	var quote Quote
+	if (a.DB.First(&quote, quoteID).RecordNotFound()) {
 		message = append(message, "Quote ID: ", strconv.Itoa(quoteID), " not found.")
 		toolbox.RespondWithError(w, http.StatusBadRequest, strings.Join(message, ""))
 		return
 	}
-	toolbox.Db.Delete(&quote)
+	a.DB.Delete(&quote)
 
 	// @todo: remove author ID from quotes that reference the deleted author
 

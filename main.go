@@ -5,9 +5,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/deezone/rest-api-go/toolbox"
 
-	_ "github.com/deezone/rest-api-go/routes"
+	"github.com/deezone/rest-api-go/toolbox"
+	"github.com/deezone/rest-api-go/application"
 )
 
 // main function
@@ -15,8 +15,17 @@ import (
 func main() {
 	fmt.Println("Starting rest-api-go application...")
 
+	a := application.App{}
+	a.Initialize(
+		toolbox.Conf.DbUser,
+		toolbox.Conf.DbPassword,
+		toolbox.Conf.DbName,
+		toolbox.Conf.DbHost)
+
+	a.Run(toolbox.Conf.Port)
+
 	// https://github.com/jinzhu/gorm/issues/1427
-	// Commented out in toolbox/db.go as setting within a package seems to result in the connection closing prematurely
-	// @todo ISSUE-22 : Research defer db.Close() within package
-	defer toolbox.Db.Close()
+	// Commented out as having this within the application/application.go package seems to result in the connection
+	// closing
+	defer a.DB.Close()
 }
