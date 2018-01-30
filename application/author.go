@@ -80,6 +80,7 @@ func (a *App) CreateAuthor(w http.ResponseWriter, r *http.Request) {
 // DELETE /author/{id}
 // Returns a status message that includes the ID of the author record deleted.
 func (a *App) DeleteAuthor(w http.ResponseWriter, r *http.Request) {
+	var count int
 	params := mux.Vars(r)
 	authorID, err := strconv.Atoi(params["id"])
 	if (err != nil) {
@@ -95,9 +96,12 @@ func (a *App) DeleteAuthor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.DB.Delete(&author)
-
-	// @todo: ISSUE-18 - delete quotes attributed to deleted author
-
 	message = append(message, "Author ID: ", strconv.Itoa(authorID), " deleted.")
+
+	// delete all quotes attributed to deleted author
+	a.DB.Raw("DELETE FROM quotes WHERE author_id = ?", authorID).Count(&count)
+	message = append(message, " ", strconv.Itoa(count), " quotes deleted that where attibuted to author: ",
+		strconv.Itoa(authorID))
+
 	toolbox.RespondWithJSON(w, http.StatusOK, map[string]string{"status": strings.Join(message, "")})
 }
