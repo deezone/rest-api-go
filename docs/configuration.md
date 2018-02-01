@@ -21,8 +21,9 @@ export REST_API_ENV=test
 Add configuration files to:
 - `config/config.development.json`
 - `config/config.production.json`
+- `config/config.test.json`
 
-*Sample*
+*Sample*: `config.production.json`
 ```
 {
   "Version": "v0.01",

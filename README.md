@@ -5,9 +5,16 @@ REST API using the Go programming language. A learning excercise to understand t
 when building an API.
 
 ### To Start
-- ensure postGres database is running
+- clone repo to working Go directory
+- install dependancies (assuming using [dep](https://golang.github.io/dep/docs/introduction.html))
 ```
-pg-start
+$ dep ensure
+```
+- PostGres database is running
+  - [Installing Postgres via Brew](https://gist.github.com/sgnl/609557ebacd3378f3b72)
+
+```
+$ brew services start postgresql
 ```
 
 - create application databases
@@ -17,6 +24,10 @@ $ createdb test-rest-api-go
 $ createdb dev-rest-api-go
 ```
 NOTE: see [Installing Postgres via Brew](https://gist.github.com/sgnl/609557ebacd3378f3b72) for details on local setup.
+
+- Set the desire configuration mode to load the configuration file based settings:
+  - [Environment Variables](docs/configuration.md)
+  - [Configuration files](docs/configuration.md)
 
 - start application
 ```

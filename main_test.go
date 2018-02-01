@@ -48,6 +48,8 @@ func clearTables() {
 
 	a.DB.Unscoped().Delete(&authors)
 	a.DB.Exec("ALTER SEQUENCE authors_id_seq RESTART WITH 1")
+
+	return
 }
 
 //

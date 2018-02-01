@@ -84,3 +84,11 @@ top error producers, top throughput endpoints, and so on.
 - [Create A Real Time Chat App With Golang, Angular 2, And Websockets](https://www.thepolyglotdeveloper.com/2016/12/create-real-time-chat-app-golang-angular-2-websockets/)
 - [Testing Angular 2 and Continuous Integration with Jest](https://semaphoreci.com/community/tutorials/testing-angular-2-and-continuous-integration-with-jest)
 - [Authenticate With JWT In A NativeScript Angular Mobile Application](https://www.thepolyglotdeveloper.com/2017/03/authenticate-jwt-nativescript-angular-mobile-application/)
+
+##### API
+
+#### Versioning
+- [Introduction to API Versioning Best Practices](https://nordicapis.com/introduction-to-api-versioning-best-practices/)
+- [Four REST API Versioning Strategies](https://www.xmatters.com/integrations/blog-four-rest-api-versioning-strategies/)
+- [Versioning a REST API](http://www.baeldung.com/rest-versioning)
+- [RESTFul API Versioning Insights](http://blog.restcase.com/restful-api-versioning-insights/)
