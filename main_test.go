@@ -313,3 +313,90 @@ func TestCreateQuoteWithValidAuthor(t *testing.T) {
 
 	// @todo: test for quote values in response
 }
+
+//
+func TestDeleteAuthor(t *testing.T) {
+	clearTables()
+
+	// create author
+	payloadAuthor := []byte(`{
+		"first": 	   "First",
+		"last":  	   "Last",
+		"born":  	   "2000-01-02T00:00:00Z",
+		"died":	 	   "2010-01-03T00:00:00Z",
+		"description": "Test description.",
+		"biolink": 	   "http://somesite.com"
+	}`)
+
+	reqAuthor, _ := http.NewRequest("POST", "/author", bytes.NewBuffer(payloadAuthor))
+	responseAuthor := executeRequest(reqAuthor)
+
+	checkResponseCode(t, http.StatusCreated, responseAuthor.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(responseAuthor.Body.Bytes(), &m)
+
+	if m["status"] != "created" {
+		t.Errorf("Expected the 'status' key of the response to be set to 'created'. Got '%s'", m["status"])
+	}
+	if m["id"] != "1" {
+		t.Errorf("Expected the 'id' key of the response to be set to '1'. Got '%s'", m["id"])
+	}
+
+	// create first of two quotes attributed to the author
+	payloadQuote := []byte(`{
+		"quote":	"Test quote one",
+		"authorid":	1
+	}`)
+
+	reqQuote, _ := http.NewRequest("POST", "/quote", bytes.NewBuffer(payloadQuote))
+	responseQuote := executeRequest(reqQuote)
+
+	checkResponseCode(t, http.StatusCreated, responseQuote.Code)
+
+	json.Unmarshal(responseQuote.Body.Bytes(), &m)
+
+	if m["status"] != "created" {
+		t.Errorf("Expected the 'status' key of the response to be set to 'created'. Got '%s'", m["status"])
+	}
+	if m["id"] != "1" {
+		t.Errorf("Expected the 'id' key of the response to be set to '1'. Got '%s'", m["id"])
+	}
+	if m["authorid"] != "1" {
+		t.Errorf("Expected the 'authorid' key of the response to be set to '1'. Got '%s'", m["authorid"])
+	}
+
+	// create first of two quotes attributed to the author
+	payloadQuote := []byte(`{
+		"quote":	"Test quote one",
+		"authorid":	1
+	}`)
+
+	reqQuote, _ := http.NewRequest("POST", "/quote", bytes.NewBuffer(payloadQuote))
+	responseQuote := executeRequest(reqQuote)
+
+	checkResponseCode(t, http.StatusCreated, responseQuote.Code)
+
+	json.Unmarshal(responseQuote.Body.Bytes(), &m)
+
+	if m["status"] != "created" {
+		t.Errorf("Expected the 'status' key of the response to be set to 'created'. Got '%s'", m["status"])
+	}
+	if m["id"] != "1" {
+		t.Errorf("Expected the 'id' key of the response to be set to '1'. Got '%s'", m["id"])
+	}
+	if m["authorid"] != "1" {
+		t.Errorf("Expected the 'authorid' key of the response to be set to '1'. Got '%s'", m["authorid"])
+	}
+
+
+	reqAuthor, _ := http.NewRequest("DELETE", "/author/1", nil)
+	responseAuthor := executeRequest(reqAuthor)
+
+	checkResponseCode(t, http.StatusOK, responseAuthor.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(responseAuthor.Body.Bytes(), &m)
+
+
+}
